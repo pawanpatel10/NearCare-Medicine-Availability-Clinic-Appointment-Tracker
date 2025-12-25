@@ -1,0 +1,78 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+}
+
+.clinic-container {
+  min-height: 100vh;
+}
+
+/* Header */
+.clinic-header {
+  background: #355f8a;
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logout-btn {
+  background: white;
+  color: #355f8a;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Welcome */
+.clinic-welcome {
+  padding: 24px;
+}
+
+.clinic-welcome h2 {
+  margin-bottom: 6px;
+}
+
+/* Actions */
+.clinic-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+
+.clinic-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.clinic-card h3 {
+  margin-bottom: 8px;
+  color: #355f8a;
+}
+
+.clinic-card p {
+  font-size: 14px;
+  margin-bottom: 16px;
+  color: #555;
+}
+
+.clinic-card button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #355f8a;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.clinic-card button:hover {
+  background: #27496d;
+}
