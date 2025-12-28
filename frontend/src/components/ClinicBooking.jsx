@@ -1,6 +1,15 @@
 import { useParams } from "react-router-dom";
 import { auth, db } from "../firebaseConfig";
-import { doc, getDoc, addDoc, collection } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  addDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 
@@ -17,19 +26,48 @@ export default function ClinicBooking() {
   }, [clinicId]);
 
   const bookAppointment = async () => {
+    if (!auth.currentUser) return;
+
+    // 1️⃣ Check if user already booked
+    const q = query(
+      collection(db, "appointments"),
+      where("clinicId", "==", clinicId),
+      where("userId", "==", auth.currentUser.uid)
+    );
+
+    const existing = await getDocs(q);
+    if (!existing.empty) {
+      alert("You already have an appointment at this clinic.");
+      return;
+    }
+
+    // 2️⃣ Get current token count
+    const tokenQuery = query(
+      collection(db, "appointments"),
+      where("clinicId", "==", clinicId)
+    );
+
+    const tokenSnap = await getDocs(tokenQuery);
+    const nextToken = tokenSnap.size + 1;
+
+    // 3️⃣ Create appointment
     await addDoc(collection(db, "appointments"), {
       clinicId,
+      clinicName: clinic.name,
       userId: auth.currentUser.uid,
-      patientName: auth.currentUser.displayName,
-      time: "Today",
-      token: Date.now(), // temporary
-      createdAt: new Date()
+      patientName: auth.currentUser.displayName || "Patient",
+      token: nextToken,
+      status: "active",
+      createdAt: serverTimestamp()
     });
 
-    alert("Appointment booked!");
+    alert(`Appointment booked! Your token number is ${nextToken}`);
   };
 
   if (!clinic) return <div className="p-6">Loading...</div>;
+
+  // ✅ ADD THIS BEFORE RETURN
+  const isClosed = !clinic.openTime || !clinic.closeTime;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,13 +75,27 @@ export default function ClinicBooking() {
 
       <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow">
         <h1 className="text-xl font-bold mb-2">{clinic.name}</h1>
-        <p className="text-gray-500 mb-4">Fees: ₹{clinic.fees}</p>
 
+        <p className="text-gray-600">📍 {clinic.address}</p>
+        <p className="text-gray-600">
+          ⏰ {clinic.openTime} – {clinic.closeTime}
+        </p>
+
+        <p className="font-semibold text-lg mt-3">
+          Fees: ₹{clinic.fees}
+        </p>
+
+        {/* ✅ UPDATED BUTTON */}
         <button
+          disabled={isClosed}
           onClick={bookAppointment}
-          className="w-full bg-green-600 text-white py-3 rounded-lg font-bold"
+          className={`w-full py-3 rounded-lg font-bold text-white transition ${
+            isClosed
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
+          }`}
         >
-          Confirm Appointment
+          {isClosed ? "Clinic Closed" : "Confirm Appointment"}
         </button>
       </div>
     </div>
