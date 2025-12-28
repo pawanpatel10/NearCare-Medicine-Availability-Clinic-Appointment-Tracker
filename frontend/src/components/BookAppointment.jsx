@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { auth, db } from "../firebaseConfig";
+import { db } from "../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -12,7 +12,15 @@ export default function BookAppointment() {
   useEffect(() => {
     const fetchClinics = async () => {
       const snap = await getDocs(collection(db, "clinics"));
-      setClinics(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+      const clinicList = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        // show only fully configured clinics
+        .filter(c => c.name && c.address && c.openTime && c.closeTime)
+        // sort by fees (low → high)
+        .sort((a, b) => Number(a.fees) - Number(b.fees));
+
+      setClinics(clinicList);
       setLoading(false);
     };
 
@@ -36,28 +44,47 @@ export default function BookAppointment() {
           <p className="text-gray-500">No clinics available.</p>
         ) : (
           <div className="space-y-4">
-            {clinics.map((clinic) => (
-              <div
-                key={clinic.id}
-                className="bg-white p-5 rounded-xl border shadow-sm flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-bold text-lg">{clinic.name}</p>
-                  <p className="text-sm text-gray-500">
-                    Fees: ₹{clinic.fees || "N/A"}
-                  </p>
-                </div>
+            {clinics.map((clinic) => {
+              // 🔴 clinic closed logic
+              const isClosed = !clinic.openTime || !clinic.closeTime;
 
-                <button
-                  onClick={() =>
-                    navigate(`/book-appointment/${clinic.id}`)
-                  }
-                  className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700"
+              return (
+                <div
+                  key={clinic.id}
+                  className="bg-white p-5 rounded-xl border shadow-sm flex justify-between items-center"
                 >
-                  Select
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <p className="font-bold text-lg">{clinic.name}</p>
+
+                    <p className="text-sm text-gray-600 mt-1">
+                      📍 {clinic.address}
+                    </p>
+
+                    <p className="text-sm text-gray-600">
+                      ⏰ {clinic.openTime} – {clinic.closeTime}
+                    </p>
+
+                    <p className="text-sm font-semibold mt-1">
+                      💰 Fees: ₹{clinic.fees}
+                    </p>
+                  </div>
+
+                  <button
+                    disabled={isClosed}
+                    onClick={() =>
+                      navigate(`/book-appointment/${clinic.id}`)
+                    }
+                    className={`px-5 py-2 rounded-lg text-white transition ${
+                      isClosed
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {isClosed ? "Clinic Closed" : "Select"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

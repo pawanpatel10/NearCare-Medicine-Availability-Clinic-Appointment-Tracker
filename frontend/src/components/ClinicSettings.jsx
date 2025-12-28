@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
@@ -11,7 +11,7 @@ export default function ClinicSettings() {
   const [form, setForm] = useState({
     name: "",
     address: "",
-    fees: "",
+    fees: "",          // ✅ keep as string in state
     openTime: "",
     closeTime: ""
   });
@@ -28,21 +28,35 @@ export default function ClinicSettings() {
       const snap = await getDoc(clinicRef);
 
       if (snap.exists()) {
-        setForm({ ...form, ...snap.data() });
+        setForm(prev => ({ ...prev, ...snap.data() }));
       }
       setLoading(false);
     };
 
     fetchClinicProfile();
-  }, []);
+  }, [navigate]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   const saveChanges = async () => {
     const clinicRef = doc(db, "clinics", auth.currentUser.uid);
-    await updateDoc(clinicRef, form);
+
+    await setDoc(
+      clinicRef,
+      {
+        ...form,
+        fees: Number(form.fees), // ✅ convert ONLY here
+        ownerId: auth.currentUser.uid,
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+
     alert("Clinic profile updated");
   };
 
@@ -63,7 +77,22 @@ export default function ClinicSettings() {
             name={field}
             value={form[field]}
             onChange={handleChange}
-            placeholder={field.toUpperCase()}
+            type={
+              field === "fees"
+                ? "number"
+                : field === "openTime" || field === "closeTime"
+                ? "time"
+                : "text"
+            }
+            placeholder={
+              {
+                name: "Clinic Name",
+                address: "Clinic Address",
+                fees: "Consultation Fees",
+                openTime: "Opening Time",
+                closeTime: "Closing Time"
+              }[field]
+            }
             className="w-full border p-3 rounded mb-3"
           />
         ))}
