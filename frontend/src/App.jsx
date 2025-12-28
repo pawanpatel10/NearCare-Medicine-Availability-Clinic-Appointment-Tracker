@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute'; // <--- Import this
+import "leaflet/dist/leaflet.css";
+
 
 // Import all your pages
 import Login from './components/Login';
@@ -15,13 +17,14 @@ import PharmacyHome from './components/PharmacyHome';
 import CompleteProfile from './components/CompleteProfile';
 import InventoryScanner from './components/InventoryScanner';
 import PharmacyInventory from './components/PharmacyInventory';
+import UserFindMedicines from './components/UserFindMedicine'
 
 function App() {
   return (
     <Router>
       <Routes>
         {/* Default Route */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/signup" />} />
 
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
@@ -45,6 +48,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['user']}>
               <UserHome />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/search-medicines" 
+          element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <UserFindMedicines />
             </ProtectedRoute>
           } 
         />

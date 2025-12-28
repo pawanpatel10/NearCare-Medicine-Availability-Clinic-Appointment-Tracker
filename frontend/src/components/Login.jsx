@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, googleProvider } from "../firebaseConfig"; // Import from your config
+import { auth, googleProvider } from "../firebaseConfig";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig"; // Import Firestore instance
+import { db } from "../firebaseConfig";
 import "./auth.css";
 
 function Login() {
@@ -18,89 +18,146 @@ function Login() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  // 1. Handle Email/Password Login
+  // ------------------------------
+  // Email/Password Login
+  // ------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear previous errors
+    setError("");
 
     try {
-      // Firebase function to check credentials
       const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password);
       const user = userCredential.user;
-      
-      console.log("Logged in:", user.email);
+
+      // Add lat/lng for pharmacy users if missing
+      if (form.role === "pharmacy") {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        const data = docSnap.data();
+
+        if (!data.lat || !data.lng) {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              await setDoc(
+                docRef,
+                {
+                  ...data,
+                  lat: pos.coords.latitude,
+                  lng: pos.coords.longitude,
+                  updatedAt: new Date(),
+                },
+                { merge: true }
+              );
+            },
+            async () => {
+              await setDoc(
+                docRef,
+                { ...data, lat: 25.4358, lng: 81.8463, updatedAt: new Date() },
+                { merge: true }
+              );
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+      }
+
+      // Redirect based on role
       handleRedirect(form.role);
-      
+
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");
     }
   };
 
-  // 2. Handle Google Login (Bonus Points)
-// Inside Login.js (handleGoogleLogin)
+  // ------------------------------
+  // Google Login
+  // ------------------------------
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
 
-const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    
-    const docRef = doc(db, "users", user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      // NEW USER: Don't set a role yet!
-      await setDoc(docRef, {
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        role: "", // <--- EMPTY ROLE
-        phone: "",
-        createdAt: new Date()
-      });
-      navigate("/complete-profile");
-      
-    } else {
-      // EXISTING USER
-      const data = docSnap.data();
-      
-      // If role or phone is missing, send to profile page
-      if (!data.role || !data.phone) {
-        navigate("/complete-profile");
+      if (!docSnap.exists()) {
+        // NEW USER: Get location on signup
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            await setDoc(docRef, {
+              uid: user.uid,
+              name: user.displayName,
+              email: user.email,
+              role: "", // Will complete profile
+              phone: "",
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              createdAt: new Date()
+            });
+            navigate("/complete-profile");
+          },
+          async () => {
+            await setDoc(docRef, {
+              uid: user.uid,
+              name: user.displayName,
+              email: user.email,
+              role: "",
+              phone: "",
+              lat: 25.4358,
+              lng: 81.8463,
+              createdAt: new Date()
+            });
+            navigate("/complete-profile");
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
       } else {
-        // Send to correct dashboard
-        if (data.role === "clinic") navigate("/doctor-dashboard");
+        // EXISTING USER: Add lat/lng if missing
+        const data = docSnap.data();
+        if (!data.lat || !data.lng) {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              await setDoc(docRef, { ...data, lat: pos.coords.latitude, lng: pos.coords.longitude, updatedAt: new Date() }, { merge: true });
+            },
+            async () => {
+              await setDoc(docRef, { ...data, lat: 25.4358, lng: 81.8463, updatedAt: new Date() }, { merge: true });
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+
+        // Redirect based on role & profile completeness
+        if (!data.role || !data.phone) navigate("/complete-profile");
+        else if (data.role === "clinic") navigate("/doctor-dashboard");
         else if (data.role === "pharmacy") navigate("/pharmacy-dashboard");
         else navigate("/home");
       }
-    }
-  } catch (err) {
-    console.error(err);
-    setError("Google sign-in failed");
-  }
-};
-
-  // 3. Logic to send them to the right page
-  const handleRedirect = (role) => {
-    if (role === "pharmacy") {
-      navigate("/pharmacy-dashboard");
-    } else if (role === "clinic") {
-      navigate("/doctor-dashboard");
-    } else {
-      navigate("/home"); // Regular user
+    } catch (err) {
+      console.error(err);
+      setError("Google sign-in failed");
     }
   };
 
+  // ------------------------------
+  // Redirect Function
+  // ------------------------------
+  const handleRedirect = (role) => {
+    if (role === "pharmacy") navigate("/pharmacy-dashboard");
+    else if (role === "clinic") navigate("/doctor-dashboard");
+    else navigate("/home");
+  };
+
+  // ------------------------------
+  // JSX
+  // ------------------------------
   return (
     <div className="auth-container">
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Login</h2>
-
-        {/* Show Error Message if login fails */}
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
 
         <label>User Type</label>
-        <select name="role" value={form.role} onChange={handleChange}>
+        <select name="role" value={form.role} onChange={handleChange} className="mb-2">
           <option value="user">Patient / User</option>
           <option value="pharmacy">Pharmacy Owner</option>
           <option value="clinic">Doctor / Clinic</option>
@@ -125,13 +182,12 @@ const handleGoogleLogin = async () => {
         />
 
         <button type="submit" className="login-btn">Login</button>
-        
+
         <div style={{ textAlign: "center", margin: "10px 0" }}>OR</div>
 
-        {/* Google Button */}
-        <button 
-          type="button" 
-          onClick={handleGoogleLogin} 
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
           className="google-btn"
           style={{ background: "#db4437", color: "white" }}
         >
