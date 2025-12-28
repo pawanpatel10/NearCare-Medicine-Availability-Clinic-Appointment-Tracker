@@ -109,7 +109,7 @@ export default function ClinicHome() {
           
           {/* Today's List Card */}
           <div 
-            onClick={() => navigate("/clinic/appointments")}
+            onClick={() => navigate("/doctor-dashboard/appointments")}
             className="bg-white p-6 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group"
           >
             <div className="flex items-start justify-between mb-4">
@@ -124,7 +124,7 @@ export default function ClinicHome() {
 
           {/* Settings Card */}
           <div 
-            onClick={() => navigate("/clinic/settings")}
+            onClick={() => navigate("/doctor-dashboard/settings")}
             className="bg-white p-6 rounded-xl border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer group"
           >
              <div className="flex items-start justify-between mb-4">
