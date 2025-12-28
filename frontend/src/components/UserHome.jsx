@@ -38,7 +38,7 @@ export default function UserHome() {
       <main className="max-w-5xl mx-auto px-4 py-8">
         
         {/* 1. Hero Section with Gradient */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-xl mb-10 relative overflow-hidden">
+        <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-xl mb-10 relative overflow-hidden">
           {/* Decorative Circle */}
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
           

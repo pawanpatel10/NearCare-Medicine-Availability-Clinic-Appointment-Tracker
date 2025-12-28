@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebaseConfig"; // Import auth AND db
+import { auth, db } from "../firebaseConfig";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; // Import Firestore functions
+import { doc, setDoc } from "firebase/firestore";
 import "./auth.css";
 
 function Signup() {
@@ -25,7 +25,6 @@ function Signup() {
     e.preventDefault();
     setError("");
 
-    // 1. Validation Checks
     if (form.password !== form.confirmPassword) {
       return setError("Passwords do not match!");
     }
@@ -36,7 +35,6 @@ function Signup() {
     try {
       setLoading(true);
 
-      // 2. Create User in Firebase Auth (Email/Pass)
       const userCredential = await createUserWithEmailAndPassword(
         auth, 
         form.email, 
@@ -44,31 +42,57 @@ function Signup() {
       );
       const user = userCredential.user;
 
-      // 3. Update "Display Name" in Auth Profile (Optional but good for UI)
       await updateProfile(user, { displayName: form.name });
 
-      // 4. SAVE ROLE TO FIRESTORE (Crucial Step)
-      // We create a document in the "users" collection with the SAME ID as the Auth UID
-      await setDoc(doc(db, "users", user.uid), {
+      const docRef = doc(db, "users", user.uid);
+
+      // Default user data
+      const userData = {
         uid: user.uid,
         name: form.name,
         email: form.email,
-        role: form.role, // <--- This determines if they are Doctor or Patient
+        role: form.role,
         createdAt: new Date()
-      });
+      };
 
-      console.log("Account Created:", user.email);
-      setLoading(false);
-      
-      // 5. Redirect based on role
-      if (form.role === "pharmacy") navigate("/pharmacy-dashboard");
-      else if (form.role === "clinic") navigate("/doctor-dashboard");
-      else navigate("/home");
+      // If pharmacy, get location
+      if (form.role === "pharmacy") {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            await setDoc(docRef, {
+              ...userData,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              isOpen: true,
+              currentToken: 0
+            });
+            setLoading(false);
+            navigate("/pharmacy-dashboard");
+          },
+          async () => {
+            await setDoc(docRef, {
+              ...userData,
+              lat: 25.4358,  // fallback
+              lng: 81.8463,  // fallback
+              isOpen: true,
+              currentToken: 0
+            });
+            setLoading(false);
+            navigate("/pharmacy-dashboard");
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        // Regular user or clinic
+        await setDoc(docRef, userData);
+        setLoading(false);
+        if (form.role === "clinic") navigate("/doctor-dashboard");
+        else navigate("/home");
+      }
 
     } catch (err) {
       setLoading(false);
       console.error(err);
-      // Firebase specific error handling
       if (err.code === "auth/email-already-in-use") {
         setError("Email is already registered.");
       } else {
@@ -81,7 +105,6 @@ function Signup() {
     <div className="auth-container">
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Create Account</h2>
-
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
 
         <label>Account Type</label>
@@ -130,7 +153,7 @@ function Signup() {
         <button type="submit" disabled={loading}>
           {loading ? "Creating..." : "Sign Up"}
         </button>
-        
+
         <p className="link" onClick={() => navigate("/login")} style={{cursor: "pointer"}}>
            Already have an account? Login
         </p>
