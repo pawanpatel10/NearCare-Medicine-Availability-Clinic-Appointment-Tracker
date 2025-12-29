@@ -26,10 +26,15 @@ function Login() {
     setError("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        form.email,
+        form.password
+      );
+
       const user = userCredential.user;
 
-      // Add lat/lng for pharmacy users if missing
+      // 🟡 Keep pharmacy lat/lng logic (UNCHANGED)
       if (form.role === "pharmacy") {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
@@ -52,17 +57,21 @@ function Login() {
             async () => {
               await setDoc(
                 docRef,
-                { ...data, lat: 25.4358, lng: 81.8463, updatedAt: new Date() },
+                {
+                  ...data,
+                  lat: 25.4358,
+                  lng: 81.8463,
+                  updatedAt: new Date(),
+                },
                 { merge: true }
               );
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
+            }
           );
         }
       }
 
-      // Redirect based on role
-      handleRedirect(form.role);
+      // ✅ FIXED: Redirect using Firestore, NOT dropdown role
+      await redirectUsingFirestore(user);
 
     } catch (err) {
       console.error(err);
@@ -81,14 +90,13 @@ function Login() {
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
-        // NEW USER: Get location on signup
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             await setDoc(docRef, {
               uid: user.uid,
               name: user.displayName,
               email: user.email,
-              role: "", // Will complete profile
+              role: "",
               phone: "",
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
@@ -108,29 +116,10 @@ function Login() {
               createdAt: new Date()
             });
             navigate("/complete-profile");
-          },
-          { enableHighAccuracy: true, timeout: 10000 }
+          }
         );
       } else {
-        // EXISTING USER: Add lat/lng if missing
-        const data = docSnap.data();
-        if (!data.lat || !data.lng) {
-          navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-              await setDoc(docRef, { ...data, lat: pos.coords.latitude, lng: pos.coords.longitude, updatedAt: new Date() }, { merge: true });
-            },
-            async () => {
-              await setDoc(docRef, { ...data, lat: 25.4358, lng: 81.8463, updatedAt: new Date() }, { merge: true });
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-          );
-        }
-
-        // Redirect based on role & profile completeness
-        if (!data.role || !data.phone) navigate("/complete-profile");
-        else if (data.role === "clinic") navigate("/doctor-dashboard");
-        else if (data.role === "pharmacy") navigate("/pharmacy-dashboard");
-        else navigate("/home");
+        await redirectUsingFirestore(user);
       }
     } catch (err) {
       console.error(err);
@@ -139,16 +128,32 @@ function Login() {
   };
 
   // ------------------------------
-  // Redirect Function
+  // 🔥 SINGLE SOURCE OF TRUTH REDIRECT
   // ------------------------------
-  const handleRedirect = (role) => {
-    if (role === "pharmacy") navigate("/pharmacy-dashboard");
-    else if (role === "clinic") navigate("/doctor-dashboard");
-    else navigate("/home");
+  const redirectUsingFirestore = async (user) => {
+    const docRef = doc(db, "users", user.uid);
+    const snap = await getDoc(docRef);
+
+    if (!snap.exists()) {
+      navigate("/complete-profile");
+      return;
+    }
+
+    const data = snap.data();
+
+    if (!data.role || !data.phone) {
+      navigate("/complete-profile");
+    } else if (data.role === "clinic") {
+      navigate("/doctor-dashboard");
+    } else if (data.role === "pharmacy") {
+      navigate("/pharmacy-dashboard");
+    } else {
+      navigate("/home");
+    }
   };
 
   // ------------------------------
-  // JSX
+  // JSX (UNCHANGED)
   // ------------------------------
   return (
     <div className="auth-container">
@@ -157,7 +162,12 @@ function Login() {
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
 
         <label>User Type</label>
-        <select name="role" value={form.role} onChange={handleChange} className="mb-2">
+        <select
+          name="role"
+          value={form.role}
+          onChange={handleChange}
+          className="mb-2"
+        >
           <option value="user">Patient / User</option>
           <option value="pharmacy">Pharmacy Owner</option>
           <option value="clinic">Doctor / Clinic</option>
