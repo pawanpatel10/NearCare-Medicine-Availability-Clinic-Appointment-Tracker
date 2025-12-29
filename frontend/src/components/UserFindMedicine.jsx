@@ -10,21 +10,38 @@ const UserFindMedicine = () => {
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 📍 Get user location once with fallback
+  const [locationError, setLocationError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+
+  // 📍 Get user location with high accuracy
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         setAccuracy(pos.coords.accuracy);
+        setLocationError(null);
       },
       (err) => {
         console.error("Location error:", err);
-        setUserLocation([25.4358, 81.8463]); // fallback
-        setAccuracy(0);
+        setLocationError("Unable to access your location. Please enable location services to search for medicines.");
+        setUserLocation(null);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
     );
   }, []);
+
+  // Calculate distance between two coordinates (in km)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   // 🔍 Search medicine → pharmacy users
   const handleSearch = async () => {
@@ -32,6 +49,7 @@ const UserFindMedicine = () => {
 
     setLoading(true);
     setPlaces([]);
+    setNotFound(false);
 
     try {
       // 1️⃣ Search inventory
@@ -46,6 +64,7 @@ const UserFindMedicine = () => {
 
       if (inventorySnap.empty) {
         setLoading(false);
+        setNotFound(true);
         return;
       }
 
@@ -57,6 +76,13 @@ const UserFindMedicine = () => {
           const pharmacy = userSnap.data();
           if (!pharmacy.lat || !pharmacy.lng) return null;
 
+          const distance = calculateDistance(
+            userLocation[0],
+            userLocation[1],
+            pharmacy.lat,
+            pharmacy.lng
+          );
+
           return {
             id: item.pharmacyId,
             lat: pharmacy.lat,
@@ -67,20 +93,39 @@ const UserFindMedicine = () => {
             price: item.price,
             dosage: item.dosage,
             type: item.type,
-            isOpen: pharmacy.isOpen
+            isOpen: pharmacy.isOpen,
+            distance: distance
           };
         }
         return null;
       });
 
       const results = await Promise.all(pharmacyPromises);
-      setPlaces(results.filter(Boolean));
+      const validResults = results.filter(Boolean);
+      
+      if (validResults.length === 0) {
+        setNotFound(true);
+      } else {
+        // Sort by distance (nearest first)
+        validResults.sort((a, b) => a.distance - b.distance);
+      }
+      setPlaces(validResults);
     } catch (error) {
       console.error("Search error:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  if (locationError) {
+    return (
+      <div className="p-4 max-w-4xl mx-auto">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <strong>Location Required:</strong> {locationError}
+        </div>
+      </div>
+    );
+  }
 
   if (!userLocation) return <p className="text-gray-600">Fetching location...</p>;
 
@@ -104,6 +149,13 @@ const UserFindMedicine = () => {
 
       {loading && <p className="text-gray-600 mb-2">Finding nearby pharmacies...</p>}
 
+      {/* Not Found Message */}
+      {notFound && !loading && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
+          <strong>Medicine Not Available:</strong> No pharmacies found with "{search.trim()}" in stock nearby.
+        </div>
+      )}
+
       {/* 🗺 Map */}
       <div className="h-96 border border-gray-300 rounded-lg overflow-hidden mb-4">
         <OSMMapView
@@ -126,14 +178,17 @@ const UserFindMedicine = () => {
                 className="p-3 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-center">
-                  <div className="font-semibold text-blue-600">{p.name}</div>
+                  <div>
+                    <div className="font-semibold text-blue-600">{p.name}</div>
+                    <div className="text-sm text-gray-500">📍 {p.distance < 1 ? `${(p.distance * 1000).toFixed(0)} m` : `${p.distance.toFixed(2)} km`} away</div>
+                  </div>
                   {p.isOpen ? (
                     <span className="text-green-600 font-medium">Open</span>
                   ) : (
                     <span className="text-red-600 font-medium">Closed</span>
                   )}
                 </div>
-                <div className="text-gray-600">{p.address}</div>
+                <div className="text-sm text-gray-600 mt-1">📍 {p.address}</div>
                 <div className="text-gray-800 mt-1">
                   {p.medicine} - {p.type} - {p.dosage}mg - ₹{p.price}
                 </div>
