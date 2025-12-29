@@ -11,9 +11,10 @@ export default function ClinicSettings() {
   const [form, setForm] = useState({
     name: "",
     address: "",
-    fees: "",          // ✅ keep as string in state
+    fees: "",
     openTime: "",
-    closeTime: ""
+    closeTime: "",
+    avgTimePerPatient: "10" // ✅ NEW (minutes)
   });
 
   useEffect(() => {
@@ -50,7 +51,8 @@ export default function ClinicSettings() {
       clinicRef,
       {
         ...form,
-        fees: Number(form.fees), // ✅ convert ONLY here
+        fees: Number(form.fees),
+        avgTimePerPatient: Number(form.avgTimePerPatient), // ✅ convert here
         ownerId: auth.currentUser.uid,
         updatedAt: serverTimestamp()
       },
@@ -71,31 +73,58 @@ export default function ClinicSettings() {
       <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-sm mt-6">
         <h1 className="text-xl font-bold mb-4">Clinic Settings</h1>
 
-        {["name", "address", "fees", "openTime", "closeTime"].map((field) => (
+        {/* Clinic Details */}
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Clinic Name"
+          className="w-full border p-3 rounded mb-3"
+        />
+
+        <input
+          name="address"
+          value={form.address}
+          onChange={handleChange}
+          placeholder="Clinic Address"
+          className="w-full border p-3 rounded mb-3"
+        />
+
+        <input
+          name="fees"
+          type="number"
+          value={form.fees}
+          onChange={handleChange}
+          placeholder="Consultation Fees"
+          className="w-full border p-3 rounded mb-3"
+        />
+
+        <input
+          name="avgTimePerPatient"
+          type="number"
+          value={form.avgTimePerPatient}
+          onChange={handleChange}
+          placeholder="Avg time per patient (minutes)"
+          className="w-full border p-3 rounded mb-3"
+        />
+
+        <div className="flex gap-3">
           <input
-            key={field}
-            name={field}
-            value={form[field]}
+            name="openTime"
+            type="time"
+            value={form.openTime}
             onChange={handleChange}
-            type={
-              field === "fees"
-                ? "number"
-                : field === "openTime" || field === "closeTime"
-                ? "time"
-                : "text"
-            }
-            placeholder={
-              {
-                name: "Clinic Name",
-                address: "Clinic Address",
-                fees: "Consultation Fees",
-                openTime: "Opening Time",
-                closeTime: "Closing Time"
-              }[field]
-            }
             className="w-full border p-3 rounded mb-3"
           />
-        ))}
+
+          <input
+            name="closeTime"
+            type="time"
+            value={form.closeTime}
+            onChange={handleChange}
+            className="w-full border p-3 rounded mb-3"
+          />
+        </div>
 
         <button
           onClick={saveChanges}

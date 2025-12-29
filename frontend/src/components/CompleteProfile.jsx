@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebaseConfig";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState("user"); // Default to User
+  const [role, setRole] = useState("user"); // default
 
   useEffect(() => {
     if (auth.currentUser) {
-      setName(auth.currentUser.displayName || ""); 
+      setName(auth.currentUser.displayName || "");
     } else {
       navigate("/login");
     }
@@ -21,87 +21,97 @@ export default function CompleteProfile() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    
-    if (phone.length < 10) return alert("Enter valid phone number");
-    
+
+    if (phone.length < 10) {
+      alert("Enter valid phone number");
+      return;
+    }
+
     setLoading(true);
+
     try {
       const user = auth.currentUser;
-      const userRef = doc(db, "users", user.uid);
+      if (!user) throw new Error("No authenticated user");
 
-      // Save Role, Name, and Phone
-      await updateDoc(userRef, {
-        name: name,
-        phone: phone,
-        role: role, // <--- SAVING THE ROLE THEY CHOSE
-        isProfileComplete: true
-      });
+      // 🔹 Create / Update user profile
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name,
+          phone,
+          role,
+          isProfileComplete: true,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-      // Initialize their specific database entry based on role
-      // (e.g., If they are a Clinic, create a 'clinics' doc for them)
+      // 🔹 Initialize clinic document if role = clinic
       if (role === "clinic") {
         await createClinicProfile(user.uid, name);
+        navigate("/doctor-dashboard");
+      } else if (role === "pharmacy") {
+        navigate("/pharmacy-dashboard");
+      } else {
+        navigate("/home");
       }
 
-      setLoading(false);
-
-      // Redirect based on the role they just chose
-      if (role === "clinic") navigate("/doctor-dashboard");
-      else if (role === "pharmacy") navigate("/pharmacy-dashboard");
-      else navigate("/home");
-      
     } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to save.");
+      console.error("Save profile error:", error);
+      alert("Failed to save profile");
+    } finally {
       setLoading(false);
     }
   };
 
-  // Helper to setup empty clinic data
+  // 🔹 Create clinic document safely
   const createClinicProfile = async (uid, doctorName) => {
-     // Check if exists first to avoid overwriting
-     const clinicRef = doc(db, "clinics", uid);
-     const snap = await getDoc(clinicRef);
-     if(!snap.exists()) {
-       const { setDoc } = await import("firebase/firestore"); // Dynamic import
-       await setDoc(clinicRef, {
-         name: doctorName,
-         currentToken: 0,
-         isOpen: true,
-         address: "Update your address"
-       });
-     }
-  }
+    const clinicRef = doc(db, "clinics", uid);
+    const snap = await getDoc(clinicRef);
+
+    if (!snap.exists()) {
+      await setDoc(clinicRef, {
+        name: doctorName,
+        address: "",
+        fees: "",
+        openTime: "",
+        closeTime: "",
+        currentToken: 0,
+        totalTokens: 0,
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
 
   return (
     <div className="auth-container">
       <form className="auth-card" onSubmit={handleSave}>
         <h2>Finish Setup 🚀</h2>
-        
+
         <label>I am a...</label>
         <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="user">Patient (Looking for meds)</option>
-          <option value="clinic">Doctor (Manage Clinic)</option>
+          <option value="user">Patient</option>
+          <option value="clinic">Doctor (Clinic)</option>
           <option value="pharmacy">Pharmacy Owner</option>
         </select>
 
         <label>Full Name</label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          required 
+          required
         />
-        
+
         <label>Mobile Number</label>
-        <input 
-          type="tel" 
-          placeholder="9876543210" 
+        <input
+          type="tel"
+          placeholder="9876543210"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          required 
+          required
         />
-        
+
         <button type="submit" disabled={loading}>
           {loading ? "Setting up..." : "Get Started"}
         </button>

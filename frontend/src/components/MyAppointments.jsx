@@ -1,41 +1,71 @@
 import { useEffect, useState } from "react";
-import { auth, db } from "../firebaseConfig";
+import { db } from "../firebaseConfig";
 import {
   collection,
   query,
   where,
   onSnapshot,
+  doc,
+  getDoc,
   orderBy
 } from "firebase/firestore";
 import Navbar from "./Navbar";
+import { useAuth } from "../context/AuthContext";
 
 export default function MyAppointments() {
+  const { currentUser, loading: authLoading } = useAuth();
+
   const [appointments, setAppointments] = useState([]);
+  const [clinicMap, setClinicMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (authLoading) return;
 
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+
+    // ✅ ORDER BY TOKEN (NOT createdAt)
     const q = query(
       collection(db, "appointments"),
-      where("userId", "==", user.uid),
-      where("status", "==", "active"),        // ✅ show only active bookings
-      orderBy("createdAt", "desc")
+      where("userId", "==", currentUser.uid),
+      orderBy("token", "asc")
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setAppointments(
-        snap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          // ✅ hide old test data (Date.now() tokens)
-          .filter(a => typeof a.token === "number" && a.token < 1000)
-      );
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      async (snap) => {
+        const appts = snap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        }));
+
+        setAppointments(appts);
+
+        // Load clinic data
+        const clinicIds = [...new Set(appts.map(a => a.clinicId))];
+        const clinicData = {};
+
+        await Promise.all(
+          clinicIds.map(async cid => {
+            const cSnap = await getDoc(doc(db, "clinics", cid));
+            if (cSnap.exists()) clinicData[cid] = cSnap.data();
+          })
+        );
+
+        setClinicMap(clinicData);
+        setLoading(false);
+      },
+      err => {
+        console.error("Snapshot error:", err);
+        setLoading(false);
+      }
+    );
 
     return () => unsub();
-  }, []);
+  }, [currentUser, authLoading]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,38 +77,54 @@ export default function MyAppointments() {
         {loading ? (
           <p className="text-gray-500">Loading appointments...</p>
         ) : appointments.length === 0 ? (
-          <p className="text-gray-500">
-            You have no active appointments.
-          </p>
+          <p className="text-gray-500">No appointments found.</p>
         ) : (
           <div className="space-y-3">
-            {appointments.map(a => (
-              <div
-                key={a.id}
-                className="bg-white p-4 rounded-lg border flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold text-lg">
-                    {a.clinicName}
-                  </p>
+            {appointments.map(a => {
+              const clinic = clinicMap[a.clinicId];
+              const avgTime = clinic?.avgTimePerPatient || 10;
 
-                  <p className="text-sm text-gray-500">
-                    Booked on:{" "}
-                    {a.createdAt?.toDate().toLocaleString()}
-                  </p>
+              let statusText = a.status || "Waiting";
+              let waitText = "Waiting...";
+              let badgeColor = "bg-yellow-100 text-yellow-700";
 
-                  <span className="inline-block mt-1 px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                    Active
+              if (clinic) {
+                const remaining =
+                  a.token - (clinic.currentToken || 0) - 1;
+
+                if (remaining < 0) {
+                  statusText = "Being Served";
+                  waitText = "It's your turn";
+                  badgeColor = "bg-green-100 text-green-700";
+                } else if (remaining === 0) {
+                  statusText = "Next";
+                  waitText = `~${avgTime} mins`;
+                  badgeColor = "bg-blue-100 text-blue-700";
+                } else {
+                  waitText = `~${remaining * avgTime} mins`;
+                }
+              }
+
+              if (a.status === "completed") {
+                statusText = "Completed";
+                waitText = "Visit completed";
+                badgeColor = "bg-gray-200 text-gray-700";
+              }
+
+              return (
+                <div key={a.id} className="bg-white p-4 rounded-lg border">
+                  <p className="font-semibold text-lg">{a.clinicName}</p>
+                  <p className="text-sm text-gray-500">Token #{a.token}</p>
+                  <p className="text-sm text-gray-500">⏳ {waitText}</p>
+
+                  <span
+                    className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${badgeColor}`}
+                  >
+                    {statusText}
                   </span>
                 </div>
-
-                <div className="text-right">
-                  <p className="text-blue-600 font-bold text-lg">
-                    Token #{a.token}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
