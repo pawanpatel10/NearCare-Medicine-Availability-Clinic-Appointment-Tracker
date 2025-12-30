@@ -13,12 +13,10 @@ import { useAuth } from "../context/AuthContext";
 
 export default function MyAppointments() {
   const { currentUser, loading: authLoading } = useAuth();
-
   const [appointments, setAppointments] = useState([]);
   const [clinicMap, setClinicMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState(null);
-  const { currentUser, loading: authLoading } = useAuth();
 
   const cancelAppointment = async (id) => {
     if (!id || cancelingId === id) return;
@@ -114,8 +112,8 @@ export default function MyAppointments() {
                     {cancelingId === a.id ? "Cancelling..." : "Cancel"}
                   </button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
