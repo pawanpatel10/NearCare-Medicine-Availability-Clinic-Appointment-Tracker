@@ -37,16 +37,13 @@ export default function ClinicBooking() {
   const bookAppointment = async () => {
     if (!auth.currentUser || !clinic) return;
 
-    // 1️⃣ Check if user already booked (ignore cancelled)
-    const q = query(
     const userId = auth.currentUser.uid;
 
-    // 🔒 Block if user already has ACTIVE appointment
-    const existingQuery = query(
+    // 1️⃣ Check if user already booked (ignore cancelled)
+    const q = query(
       collection(db, "appointments"),
       where("clinicId", "==", clinicId),
-      where("userId", "==", userId),
-      where("status", "in", ["waiting", "serving"]) // ✅ FIX
+      where("userId", "==", userId)
     );
 
     const existing = await getDocs(q);
