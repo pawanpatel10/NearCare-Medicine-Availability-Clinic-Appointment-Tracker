@@ -17,7 +17,8 @@ import PharmacyHome from './components/PharmacyHome';
 import CompleteProfile from './components/CompleteProfile';
 import InventoryScanner from './components/InventoryScanner';
 import PharmacyInventory from './components/PharmacyInventory';
-import UserFindMedicines from './components/UserFindMedicine'
+import UserFindMedicines from './components/UserFindMedicine';
+import About from "./components/About";
 
 function App() {
   return (
@@ -60,6 +61,8 @@ function App() {
           } 
         />
 
+        <Route path="/about" element={<About />} />
+        
         <Route
           path="/book-appointment"
           element={
