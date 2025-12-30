@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebaseConfig";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  increment,
+  collection,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
 import Navbar from "./Navbar";
 
 export default function ClinicHome() {
@@ -48,22 +57,61 @@ export default function ClinicHome() {
     fetchClinicData();
   }, [navigate]);
 
-  // 🔥 Call Next Patient
+  // 🔥 Call Next Patient (REAL LOGIC)
   const callNextPatient = async () => {
-    if (!auth.currentUser) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-    const clinicRef = doc(db, "clinics", auth.currentUser.uid);
+    const clinicId = user.uid;
+    const clinicRef = doc(db, "clinics", clinicId);
 
+    const current = queueStatus.currentToken;
+    const nextToken = current + 1;
+
+    // 🚫 No more patients
+    if (nextToken > queueStatus.totalTokens) return;
+
+    // 1️⃣ Complete CURRENT serving appointment
+    if (current > 0) {
+      const currentQ = query(
+        collection(db, "appointments"),
+        where("clinicId", "==", clinicId),
+        where("token", "==", current),
+        where("status", "==", "serving")
+      );
+
+      const currentSnap = await getDocs(currentQ);
+      for (const d of currentSnap.docs) {
+        await updateDoc(d.ref, { status: "completed" });
+      }
+    }
+
+    // 2️⃣ Mark NEXT appointment as serving
+    const nextQ = query(
+      collection(db, "appointments"),
+      where("clinicId", "==", clinicId),
+      where("token", "==", nextToken),
+      where("status", "==", "waiting")
+    );
+
+    const nextSnap = await getDocs(nextQ);
+    for (const d of nextSnap.docs) {
+      await updateDoc(d.ref, { status: "serving" });
+    }
+
+    // 3️⃣ Increment clinic token LAST
     await updateDoc(clinicRef, {
-      currentToken: increment(1)
+      currentToken: nextToken
     });
 
-    // Instant UI update
+    // 4️⃣ Optimistic UI update
     setQueueStatus(prev => ({
       ...prev,
-      currentToken: prev.currentToken + 1
+      currentToken: nextToken
     }));
   };
+
+
 
   if (loading) {
     return (
@@ -79,6 +127,9 @@ export default function ClinicHome() {
     queueStatus.totalTokens - queueStatus.currentToken,
     0
   );
+
+  const isQueueEmpty =
+    queueStatus.currentToken >= queueStatus.totalTokens;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -104,30 +155,39 @@ export default function ClinicHome() {
               <span className="text-6xl font-black text-gray-900">
                 #{queueStatus.currentToken}
               </span>
-              <p className="text-gray-400 font-medium mt-1">Serving</p>
+              <p className="text-gray-400 font-medium mt-1">
+                Serving
+              </p>
             </div>
 
             <div className="text-center">
               <span className="text-4xl font-bold text-blue-600">
                 {waitingCount}
               </span>
-              <p className="text-gray-400 font-medium mt-1">Waiting</p>
+              <p className="text-gray-400 font-medium mt-1">
+                Waiting
+              </p>
             </div>
           </div>
 
           <div className="z-10 flex flex-col items-center">
             <button
+              disabled={isQueueEmpty}
               onClick={callNextPatient}
-              className="bg-green-600 hover:bg-green-700 active:scale-95 text-white px-8 py-4 rounded-xl shadow-lg shadow-green-200 transition-all flex items-center gap-3 text-lg font-bold group"
+              className={`px-8 py-4 rounded-xl text-lg font-bold text-white transition-all ${
+                isQueueEmpty
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200"
+              }`}
             >
-              <span className="group-hover:animate-bounce">📢</span>
-              Call Next Patient
+              📢 Call Next Patient
             </button>
 
-            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Updates patient screens instantly
-            </p>
+            {isQueueEmpty && (
+              <p className="text-xs text-gray-400 mt-2">
+                No patients waiting
+              </p>
+            )}
           </div>
         </section>
 
@@ -135,35 +195,27 @@ export default function ClinicHome() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div
             onClick={() => navigate("/doctor-dashboard/appointments")}
-            className="bg-white p-6 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
+            className="bg-white p-6 rounded-xl border hover:shadow-md cursor-pointer"
           >
-            <h3 className="text-lg font-bold text-gray-800 mb-1">
+            <h3 className="text-lg font-bold">
               Today's Appointments
             </h3>
             <p className="text-gray-500 text-sm">
-              View the full list of patients waiting in line.
+              View live queue & patient status
             </p>
           </div>
 
           <div
             onClick={() => navigate("/doctor-dashboard/settings")}
-            className="bg-white p-6 rounded-xl border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+            className="bg-white p-6 rounded-xl border hover:shadow-md cursor-pointer"
           >
-            <h3 className="text-lg font-bold text-gray-800 mb-1">
+            <h3 className="text-lg font-bold">
               Manage Clinic Profile
             </h3>
             <p className="text-gray-500 text-sm">
-              Update opening hours, location, and fees.
+              Update hours, location, and fees
             </p>
           </div>
-        </div>
-
-        {/* Tip */}
-        <div className="mt-8 bg-blue-50 border border-blue-100 p-4 rounded-lg">
-          <p className="text-sm text-blue-700">
-            💡 <strong>Pro Tip:</strong> “Call Next Patient” advances the queue
-            and updates patient screens in real time.
-          </p>
         </div>
       </main>
     </div>

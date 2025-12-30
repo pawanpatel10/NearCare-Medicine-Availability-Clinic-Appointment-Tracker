@@ -12,7 +12,10 @@ import Navbar from "./Navbar";
 import { useAuth } from "../context/AuthContext";
 
 export default function MyAppointments() {
+  const { currentUser, loading: authLoading } = useAuth();
+
   const [appointments, setAppointments] = useState([]);
+  const [clinicMap, setClinicMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState(null);
   const { currentUser, loading: authLoading } = useAuth();
@@ -42,6 +45,7 @@ export default function MyAppointments() {
       return;
     }
 
+    // ✅ ORDER BY TOKEN (NOT createdAt)
     const q = query(
       collection(db, "appointments"),
       where("userId", "==", currentUser.uid)
@@ -110,8 +114,8 @@ export default function MyAppointments() {
                     {cancelingId === a.id ? "Cancelling..." : "Cancel"}
                   </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

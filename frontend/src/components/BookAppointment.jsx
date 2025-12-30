@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
@@ -10,21 +10,30 @@ export default function BookAppointment() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClinics = async () => {
-      const snap = await getDocs(collection(db, "clinics"));
-
+    // 🔴 REAL-TIME listener (IMPORTANT)
+    const unsub = onSnapshot(collection(db, "clinics"), (snap) => {
       const clinicList = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         // show only fully configured clinics
         .filter(c => c.name && c.address && c.openTime && c.closeTime)
-        // sort by fees (low → high)
-        .sort((a, b) => Number(a.fees) - Number(b.fees));
+        // sort by estimated wait (smart UX)
+        .sort((a, b) => {
+          const waitA =
+            Math.max((a.totalTokens || 0) - (a.currentToken || 0), 0) *
+            (a.avgTimePerPatient || 10);
+
+          const waitB =
+            Math.max((b.totalTokens || 0) - (b.currentToken || 0), 0) *
+            (b.avgTimePerPatient || 10);
+
+          return waitA - waitB;
+        });
 
       setClinics(clinicList);
       setLoading(false);
-    };
+    });
 
-    fetchClinics();
+    return () => unsub();
   }, []);
 
   if (loading) {
@@ -45,8 +54,21 @@ export default function BookAppointment() {
         ) : (
           <div className="space-y-4">
             {clinics.map((clinic) => {
-              // 🔴 clinic closed logic
               const isClosed = !clinic.openTime || !clinic.closeTime;
+
+              const currentToken = clinic.currentToken || 0;
+              const totalTokens = clinic.totalTokens || 0;
+              const avgTime = clinic.avgTimePerPatient || 10;
+
+              const waitingCount = Math.max(
+                totalTokens - currentToken,
+                0
+              );
+
+              const estimatedWait =
+                waitingCount === 0
+                  ? "No wait"
+                  : `~${waitingCount * avgTime} mins`;
 
               return (
                 <div
@@ -66,6 +88,10 @@ export default function BookAppointment() {
 
                     <p className="text-sm font-semibold mt-1">
                       💰 Fees: ₹{clinic.fees}
+                    </p>
+
+                    <p className="text-sm mt-1 text-blue-600 font-medium">
+                      ⏳ Estimated wait: {estimatedWait}
                     </p>
                   </div>
 
