@@ -53,6 +53,7 @@ export default function PharmacyInventory() {
     try {
       await addDoc(collection(db, "pharmacy_inventory"), {
         ...newItem,
+        name_lower: newItem.name.trim().toLowerCase(),
         pharmacyId: auth.currentUser.uid,
         price: Number(newItem.price),
         stock: Number(newItem.stock),

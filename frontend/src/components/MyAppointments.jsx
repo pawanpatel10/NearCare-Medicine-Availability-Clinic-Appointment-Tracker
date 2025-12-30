@@ -6,8 +6,7 @@ import {
   where,
   onSnapshot,
   doc,
-  getDoc,
-  orderBy
+  updateDoc
 } from "firebase/firestore";
 import Navbar from "./Navbar";
 import { useAuth } from "../context/AuthContext";
@@ -18,11 +17,30 @@ export default function MyAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [clinicMap, setClinicMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [cancelingId, setCancelingId] = useState(null);
+  const { currentUser, loading: authLoading } = useAuth();
+
+  const cancelAppointment = async (id) => {
+    if (!id || cancelingId === id) return;
+    const ok = window.confirm("Cancel this appointment?");
+    if (!ok) return;
+
+    try {
+      setCancelingId(id);
+      await updateDoc(doc(db, "appointments", id), { status: "cancelled" });
+    } catch (err) {
+      console.error("Cancel appointment failed", err);
+      alert("Could not cancel appointment. Please retry.");
+    } finally {
+      setCancelingId(null);
+    }
+  };
 
   useEffect(() => {
+    // Wait for auth to resolve, then subscribe; otherwise refresh skips the listener.
     if (authLoading) return;
-
     if (!currentUser) {
+      setAppointments([]);
       setLoading(false);
       return;
     }
@@ -30,42 +48,24 @@ export default function MyAppointments() {
     // ✅ ORDER BY TOKEN (NOT createdAt)
     const q = query(
       collection(db, "appointments"),
-      where("userId", "==", currentUser.uid),
-      orderBy("token", "asc")
+      where("userId", "==", currentUser.uid)
     );
 
     const unsub = onSnapshot(
       q,
-      async (snap) => {
-        const appts = snap.docs.map(d => ({
-          id: d.id,
-          ...d.data()
-        }));
-
-        setAppointments(appts);
-
-        // Load clinic data
-        const clinicIds = [...new Set(appts.map(a => a.clinicId))];
-        const clinicData = {};
-
-        await Promise.all(
-          clinicIds.map(async cid => {
-            const cSnap = await getDoc(doc(db, "clinics", cid));
-            if (cSnap.exists()) clinicData[cid] = cSnap.data();
-          })
-        );
-
-        setClinicMap(clinicData);
+      (snap) => {
+        setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         setLoading(false);
       },
-      err => {
-        console.error("Snapshot error:", err);
+      (err) => {
+        console.error("Appointments listener error", err);
+        setAppointments([]);
         setLoading(false);
       }
     );
 
     return () => unsub();
-  }, [currentUser, authLoading]);
+  }, [authLoading, currentUser]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,51 +77,42 @@ export default function MyAppointments() {
         {loading ? (
           <p className="text-gray-500">Loading appointments...</p>
         ) : appointments.length === 0 ? (
-          <p className="text-gray-500">No appointments found.</p>
+          <p className="text-gray-500">
+            You have no appointments.
+          </p>
         ) : (
           <div className="space-y-3">
-            {appointments.map(a => {
-              const clinic = clinicMap[a.clinicId];
-              const avgTime = clinic?.avgTimePerPatient || 10;
+            {appointments.map(a => (
+              <div
+                key={a.id}
+                className="bg-white p-4 rounded-lg border flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-semibold text-lg">
+                    {a.clinicName}
+                  </p>
 
-              let statusText = a.status || "Waiting";
-              let waitText = "Waiting...";
-              let badgeColor = "bg-yellow-100 text-yellow-700";
+                  <p className="text-sm text-gray-500">
+                    Booked on:{" "}
+                    {a.createdAt?.toDate().toLocaleString()}
+                  </p>
 
-              if (clinic) {
-                const remaining =
-                  a.token - (clinic.currentToken || 0) - 1;
-
-                if (remaining < 0) {
-                  statusText = "Being Served";
-                  waitText = "It's your turn";
-                  badgeColor = "bg-green-100 text-green-700";
-                } else if (remaining === 0) {
-                  statusText = "Next";
-                  waitText = `~${avgTime} mins`;
-                  badgeColor = "bg-blue-100 text-blue-700";
-                } else {
-                  waitText = `~${remaining * avgTime} mins`;
-                }
-              }
-
-              if (a.status === "completed") {
-                statusText = "Completed";
-                waitText = "Visit completed";
-                badgeColor = "bg-gray-200 text-gray-700";
-              }
-
-              return (
-                <div key={a.id} className="bg-white p-4 rounded-lg border">
-                  <p className="font-semibold text-lg">{a.clinicName}</p>
-                  <p className="text-sm text-gray-500">Token #{a.token}</p>
-                  <p className="text-sm text-gray-500">⏳ {waitText}</p>
-
-                  <span
-                    className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${badgeColor}`}
-                  >
-                    {statusText}
+                  <span className="inline-block mt-1 px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                    {(a.status || "active").toUpperCase()}
                   </span>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-blue-600 font-bold text-lg">
+                    Token #{a.token}
+                  </p>
+                  <button
+                    className="mt-2 text-sm text-red-600 hover:underline disabled:text-gray-400"
+                    disabled={cancelingId === a.id || (a.status || "").toLowerCase() === "cancelled"}
+                    onClick={() => cancelAppointment(a.id)}
+                  >
+                    {cancelingId === a.id ? "Cancelling..." : "Cancel"}
+                  </button>
                 </div>
               );
             })}

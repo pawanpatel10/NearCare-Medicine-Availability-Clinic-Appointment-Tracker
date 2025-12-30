@@ -37,6 +37,8 @@ export default function ClinicBooking() {
   const bookAppointment = async () => {
     if (!auth.currentUser || !clinic) return;
 
+    // 1️⃣ Check if user already booked (ignore cancelled)
+    const q = query(
     const userId = auth.currentUser.uid;
 
     // 🔒 Block if user already has ACTIVE appointment
@@ -47,14 +49,28 @@ export default function ClinicBooking() {
       where("status", "in", ["waiting", "serving"]) // ✅ FIX
     );
 
-    const existing = await getDocs(existingQuery);
-    if (!existing.empty) {
-      alert("You already have an active appointment at this clinic.");
+    const existing = await getDocs(q);
+    const activeExisting = existing.docs.find((d) => {
+      const status = (d.data().status || "active").toLowerCase();
+      return status !== "cancelled";
+    });
+    if (activeExisting) {
+      alert("You already have an appointment at this clinic.");
       return;
     }
 
-    // 🔢 Next token
-    const nextToken = (clinic.totalTokens || 0) + 1;
+    // 2️⃣ Get current token count
+    const tokenQuery = query(
+      collection(db, "appointments"),
+      where("clinicId", "==", clinicId)
+    );
+
+    const tokenSnap = await getDocs(tokenQuery);
+    const activeCount = tokenSnap.docs.filter((d) => {
+      const status = (d.data().status || "active").toLowerCase();
+      return status !== "cancelled";
+    }).length;
+    const nextToken = activeCount + 1;
 
     // 🧾 Create appointment
     await addDoc(collection(db, "appointments"), {
