@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebaseConfig";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, db, actionCodeSettings } from "../firebaseConfig";
+import { createUserWithEmailAndPassword, updateProfile, sendSignInLinkToEmail } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import "./auth.css";
 
@@ -11,6 +11,7 @@ function Signup() {
   const [loading, setLoading] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
   
   const [form, setForm] = useState({
     role: "user",
@@ -186,6 +187,66 @@ function Signup() {
     }
   };
 
+  // ✅ Email Link Signup
+  const handleEmailLinkSignUp = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!form.name) {
+      return setError("Please enter your name");
+    }
+    if (!form.email) {
+      return setError("Please enter your email");
+    }
+
+    // Check if pharmacy has granted location access
+    if (form.role === "pharmacy" && !locationGranted) {
+      return setError("Please grant location access to continue as a pharmacy.");
+    }
+
+    try {
+      setLoading(true);
+
+      // Send email link for signup
+      await sendSignInLinkToEmail(auth, form.email, actionCodeSettings);
+
+      // Save user data to localStorage for later retrieval after email verification
+      const userData = {
+        name: form.name,
+        email: form.email,
+        role: form.role,
+        address: form.role === "pharmacy" ? form.address : "",
+        lat: form.role === "pharmacy" ? form.lat : null,
+        lng: form.role === "pharmacy" ? form.lng : null,
+      };
+
+      window.localStorage.setItem("newUserData", JSON.stringify(userData));
+      window.localStorage.setItem("emailForSignIn", form.email);
+
+      setLoading(false);
+      setLinkSent(true);
+
+      // Clear form
+      setForm({
+        role: "user",
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        address: "",
+        lat: null,
+        lng: null,
+      });
+
+      // Reset after 5 seconds
+      setTimeout(() => setLinkSent(false), 5000);
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
+      setError(`Failed to send signup link: ${err.message}`);
+    }
+  };
+
   return (
     <div className="auth-container">
       <form className="auth-card" onSubmit={handleSubmit}>
@@ -295,6 +356,42 @@ function Signup() {
 <button type="submit" disabled={loading}>
           {loading ? "Creating..." : "Sign Up"}
         </button>
+
+        <div style={{ textAlign: "center", margin: "10px 0" }}>OR</div>
+
+        <button
+          type="button"
+          onClick={handleEmailLinkSignUp}
+          disabled={loading}
+          style={{
+            background: "#3b82f6",
+            color: "white",
+            width: "100%",
+            padding: "10px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: loading ? "not-allowed" : "pointer",
+            fontSize: "14px",
+            fontWeight: "600",
+            marginBottom: "10px"
+          }}
+        >
+          {loading ? "Sending..." : "📧 Sign Up with Email Link"}
+        </button>
+
+        {linkSent && (
+          <div style={{
+            backgroundColor: "#dcfce7",
+            color: "#166534",
+            padding: "10px",
+            borderRadius: "4px",
+            marginBottom: "10px",
+            fontSize: "14px",
+            fontWeight: "500"
+          }}>
+            ✅ Signup link sent! Check your email to complete registration.
+          </div>
+        )}
 
         <p className="link" onClick={() => navigate("/login")} style={{cursor: "pointer"}}>
            Already have an account? Login

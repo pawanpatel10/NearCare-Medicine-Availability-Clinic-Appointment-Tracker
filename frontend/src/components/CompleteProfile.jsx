@@ -72,6 +72,7 @@ export default function CompleteProfile() {
     if (!snap.exists()) {
       await setDoc(clinicRef, {
         name: doctorName,
+        name_lower: doctorName.toLowerCase().trim(),
         address: "",
         fees: "",
         openTime: "",

@@ -50,13 +50,13 @@ export default function UserHome() {
               Your health is our priority. What do you need today?
             </p>
 
-            {/* Fake Search Bar for aesthetics */}
+            {/* Fake Search Bar for aesthetics
             <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 flex items-center max-w-md border border-white/30 cursor-pointer hover:bg-white/30 transition">
               <svg className="w-5 h-5 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span className="text-blue-50 text-sm">Search for doctors, medicines...</span>
-            </div>
+            </div> */}
           </div>
         </div>
 

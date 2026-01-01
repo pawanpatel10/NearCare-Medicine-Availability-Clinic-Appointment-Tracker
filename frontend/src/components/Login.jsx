@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, googleProvider } from "../firebaseConfig";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, googleProvider, actionCodeSettings } from "../firebaseConfig";
+import { signInWithEmailAndPassword, signInWithPopup, sendSignInLinkToEmail } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import "./auth.css";
@@ -9,6 +9,7 @@ import "./auth.css";
 function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [linkSent, setLinkSent] = useState(false);
   const [form, setForm] = useState({
     role: "user",
     email: "",
@@ -76,6 +77,34 @@ function Login() {
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");
+    }
+  };
+
+  // ✅ Email Link Authentication
+  const handleEmailLinkSignIn = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!form.email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    try {
+      await sendSignInLinkToEmail(auth, form.email, actionCodeSettings);
+      
+      // Save email to localStorage for later retrieval
+      window.localStorage.setItem("emailForSignIn", form.email);
+      
+      // Show success message
+      setLinkSent(true);
+      setForm({ ...form, email: "", password: "" });
+      
+      // Auto-hide the success message after 5 seconds
+      setTimeout(() => setLinkSent(false), 5000);
+    } catch (err) {
+      console.error(err);
+      setError(`Failed to send email link: ${err.message}`);
     }
   };
 
@@ -160,6 +189,20 @@ function Login() {
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Login</h2>
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
+        
+        {linkSent && (
+          <div style={{
+            backgroundColor: "#dcfce7",
+            color: "#166534",
+            padding: "10px",
+            borderRadius: "4px",
+            marginBottom: "10px",
+            fontSize: "14px",
+            fontWeight: "500"
+          }}>
+            ✅ Sign-in link sent to {form.email}! Check your email.
+          </div>
+        )}
 
         <label>User Type</label>
         <select
@@ -194,6 +237,26 @@ function Login() {
         <button type="submit" className="login-btn">Login</button>
 
         <div style={{ textAlign: "center", margin: "10px 0" }}>OR</div>
+
+        <button
+          type="button"
+          onClick={handleEmailLinkSignIn}
+          className="email-link-btn"
+          style={{
+            background: "#3b82f6",
+            color: "white",
+            width: "100%",
+            padding: "10px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: "600",
+            marginBottom: "10px"
+          }}
+        >
+          📧 Sign in with Email Link
+        </button>
 
         <button
           type="button"

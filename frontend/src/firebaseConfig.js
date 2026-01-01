@@ -21,3 +21,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+
+// ✅ Email Link Authentication Config
+export const actionCodeSettings = {
+  url: `${import.meta.env.VITE_APP_URL || 'http://localhost:5173'}/verify-email`,
+  handleCodeInApp: true,
+};
