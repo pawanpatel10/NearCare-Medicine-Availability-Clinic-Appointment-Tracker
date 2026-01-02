@@ -39,24 +39,20 @@ export default function ClinicBooking() {
 
     const userId = auth.currentUser.uid;
 
-    // 1️⃣ Check if user already booked (ignore cancelled)
-    const q = query(
+    const existingQuery = query(
       collection(db, "appointments"),
       where("clinicId", "==", clinicId),
-      where("userId", "==", userId)
+      where("userId", "==", userId),
+      where("status", "in", ["waiting", "serving"])
     );
 
-    const existing = await getDocs(q);
-    const activeExisting = existing.docs.find((d) => {
-      const status = (d.data().status || "active").toLowerCase();
-      return status !== "cancelled";
-    });
-    if (activeExisting) {
-      alert("You already have an appointment at this clinic.");
+    const existingSnap = await getDocs(existingQuery);
+
+    if (!existingSnap.empty) {
+      alert("You already have an active appointment at this clinic.");
       return;
     }
 
-    // 2️⃣ Get current token count
     const tokenQuery = query(
       collection(db, "appointments"),
       where("clinicId", "==", clinicId)
@@ -67,9 +63,9 @@ export default function ClinicBooking() {
       const status = (d.data().status || "active").toLowerCase();
       return status !== "cancelled";
     }).length;
+
     const nextToken = activeCount + 1;
 
-    // 🧾 Create appointment
     await addDoc(collection(db, "appointments"), {
       clinicId,
       clinicName: clinic.name,
@@ -80,7 +76,6 @@ export default function ClinicBooking() {
       createdAt: serverTimestamp()
     });
 
-    // 🔥 Update clinic queue
     await updateDoc(doc(db, "clinics", clinicId), {
       totalTokens: increment(1)
     });
@@ -89,19 +84,24 @@ export default function ClinicBooking() {
     navigate("/my-appointments");
   };
 
-
   if (loading) {
-    return <div className="p-6">Loading clinic...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-100 to-emerald-100">
+        <p className="text-slate-700 font-semibold">Loading clinic...</p>
+      </div>
+    );
   }
 
   if (!clinic) {
-    return <div className="p-6 text-red-600">Clinic not found.</div>;
+    return (
+      <div className="p-6 text-red-700 font-semibold">
+        Clinic not found.
+      </div>
+    );
   }
 
-  // 🔴 Closed logic
   const isClosed = !clinic.openTime || !clinic.closeTime;
 
-  // ⏳ ETA logic
   const currentToken = clinic.currentToken || 0;
   const totalTokens = clinic.totalTokens || 0;
   const avgTime = clinic.avgTimePerPatient || 10;
@@ -111,37 +111,51 @@ export default function ClinicBooking() {
     waitingCount === 0 ? "No wait" : `~${waitingCount * avgTime} mins`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-emerald-100">
       <Navbar />
 
-      <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow">
-        <h1 className="text-xl font-bold mb-2">{clinic.name}</h1>
-
-        <p className="text-gray-600">📍 {clinic.address}</p>
-
-        <p className="text-gray-600">
-          ⏰ {clinic.openTime} – {clinic.closeTime}
-        </p>
-
-        <p className="font-semibold text-lg mt-3">
-          Fees: ₹{clinic.fees}
-        </p>
-
-        <p className="mt-2 text-blue-600 font-medium">
-          ⏳ Estimated wait: {estimatedWait}
-        </p>
-
-        <button
-          disabled={isClosed}
-          onClick={bookAppointment}
-          className={`w-full py-3 mt-6 rounded-lg font-bold text-white transition ${
-            isClosed
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-600 hover:bg-green-700"
-          }`}
+      <div className="max-w-xl mx-auto px-4 py-8">
+        <div
+          className="relative rounded-3xl p-[1.5px]
+                     bg-gradient-to-r from-slate-400 to-slate-300
+                     hover:from-teal-600 hover:to-emerald-600 transition"
         >
-          {isClosed ? "Clinic Closed" : "Confirm Appointment"}
-        </button>
+          <div className="bg-white rounded-3xl px-6 py-6 shadow-lg">
+            <h1 className="text-xl font-bold text-slate-900 mb-2">
+              {clinic.name}
+            </h1>
+
+            <p className="text-slate-700">
+              📍 {clinic.address}
+            </p>
+
+            <p className="text-slate-700 mt-1">
+              ⏰ {clinic.openTime} – {clinic.closeTime}
+            </p>
+
+            <p className="font-semibold text-lg text-slate-900 mt-4">
+              Fees: ₹{clinic.fees}
+            </p>
+
+            <div className="mt-3 inline-block px-3 py-1 rounded-full
+                            bg-blue-200 text-blue-900 font-semibold text-sm">
+              ⏳ Estimated wait: {estimatedWait}
+            </div>
+
+            <button
+              disabled={isClosed}
+              onClick={bookAppointment}
+              className={`w-full py-3 mt-8 rounded-xl font-bold text-white
+                transition cursor-pointer ${
+                  isClosed
+                    ? "bg-slate-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-teal-700 to-emerald-700 hover:scale-[1.02] shadow-lg"
+                }`}
+            >
+              {isClosed ? "Clinic Closed" : "Confirm Appointment"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
