@@ -85,7 +85,11 @@ export default function BookAppointment() {
   }, []);
 
   if (loading) {
-    return <div className="p-6">Loading clinics...</div>;
+    return (
+      <div className="p-6 text-lg text-gray-600">
+        Loading clinics…
+      </div>
+    );
   }
 
   return (
@@ -169,26 +173,30 @@ export default function BookAppointment() {
                       ⏳ Estimated wait: {estimatedWait}
                     </p>
                   </div>
-
-                  <button
-                    disabled={isClosed}
-                    onClick={() =>
-                      navigate(`/book-appointment/${clinic.id}`)
-                    }
-                    className={`px-5 py-2 rounded-lg text-white transition ${
-                      isClosed
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
-                  >
-                    {isClosed ? "Clinic Closed" : "Select"}
-                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                {/* RIGHT */}
+                <button
+                  disabled={isClosed}
+                  onClick={() =>
+                    navigate(`/book-appointment/${clinic.id}`)
+                  }
+                  className={`px-4 py-1.5 text-sm rounded-md font-semibold
+                    transition ${
+                      isClosed
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                >
+                  {isClosed ? "Closed" : "Select"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    </div>
+    )}
+  </div>
+</div>
   );
 }
