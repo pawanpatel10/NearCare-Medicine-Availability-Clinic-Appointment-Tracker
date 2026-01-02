@@ -1,24 +1,30 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute'; // <--- Import this
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute"; // <--- Import both
 import "leaflet/dist/leaflet.css";
 
-
 // Import all your pages
-import Login from './components/Login';
-import Signup from './components/Signup';
-import EmailVerification from './components/EmailVerification';
-import UserHome from './components/UserHome';
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import EmailVerification from "./components/EmailVerification";
+import UserHome from "./components/UserHome";
 import BookAppointment from "./components/BookAppointment";
 import ClinicBooking from "./components/ClinicBooking";
 import MyAppointments from "./components/MyAppointments";
-import ClinicHome from './components/ClinicHome';
-import ClinicAppointments from './components/ClinicAppointments';
+import ClinicHome from "./components/ClinicHome";
+import ClinicAppointments from "./components/ClinicAppointments";
 import ClinicSettings from "./components/ClinicSettings";
-import PharmacyHome from './components/PharmacyHome';
-import CompleteProfile from './components/CompleteProfile';
-import InventoryScanner from './components/InventoryScanner';
-import PharmacyInventory from './components/PharmacyInventory';
-import UserFindMedicines from './components/UserFindMedicine'
+import PharmacyHome from "./components/PharmacyHome";
+import PharmacyProfile from "./components/PharmacyProfile";
+import CompleteProfile from "./components/CompleteProfile";
+import InventoryScanner from "./components/InventoryScanner";
+import PharmacyInventory from "./components/PharmacyInventory";
+import UserFindMedicines from "./components/UserFindMedicine";
+import About from "./components/About";
 
 function App() {
   return (
@@ -27,45 +33,70 @@ function App() {
         {/* Default Route */}
         <Route path="/" element={<Navigate to="/signup" />} />
 
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verify-email" element={<EmailVerification />} />
-        
-        {/* Helper Route (Accessible by logged in users only, any role) */}
-        <Route 
-          path="/complete-profile" 
+        {/* Public Routes - Redirect to dashboard if already logged in */}
+        <Route
+          path="/login"
           element={
-            <ProtectedRoute allowedRoles={['user', 'clinic', 'pharmacy', '']}>
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          }
+        />
+
+        {/* Email Verification - requires authentication */}
+        <Route
+          path="/verify-email"
+          element={
+            <ProtectedRoute>
+              <EmailVerification />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Helper Route - Accessible by logged in users to complete profile */}
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute>
               <CompleteProfile />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* --- PROTECTED ROUTES --- */}
 
         {/* 1. Patient Routes */}
-        <Route 
-          path="/home" 
+        <Route
+          path="/home"
           element={
-            <ProtectedRoute allowedRoles={['user']}>
+            <ProtectedRoute allowedRoles={["user"]}>
               <UserHome />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/search-medicines" 
+        <Route
+          path="/search-medicines"
           element={
-            <ProtectedRoute allowedRoles={['user']}>
+            <ProtectedRoute allowedRoles={["user"]}>
               <UserFindMedicines />
             </ProtectedRoute>
-          } 
+          }
         />
+
+        <Route path="/about" element={<About />} />
 
         <Route
           path="/book-appointment"
           element={
-            <ProtectedRoute allowedRoles={['user']}>
+            <ProtectedRoute allowedRoles={["user"]}>
               <BookAppointment />
             </ProtectedRoute>
           }
@@ -74,7 +105,7 @@ function App() {
         <Route
           path="/book-appointment/:clinicId"
           element={
-            <ProtectedRoute allowedRoles={['user']}>
+            <ProtectedRoute allowedRoles={["user"]}>
               <ClinicBooking />
             </ProtectedRoute>
           }
@@ -83,67 +114,76 @@ function App() {
         <Route
           path="/my-appointments"
           element={
-            <ProtectedRoute allowedRoles={['user']}>
+            <ProtectedRoute allowedRoles={["user"]}>
               <MyAppointments />
             </ProtectedRoute>
           }
         />
 
         {/* 2. Doctor Routes */}
-        <Route 
-          path="/doctor-dashboard" 
+        <Route
+          path="/doctor-dashboard"
           element={
-            <ProtectedRoute allowedRoles={['clinic']}>
+            <ProtectedRoute allowedRoles={["clinic"]}>
               <ClinicHome />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
+        <Route
           path="/doctor-dashboard/appointments"
           element={
-            <ProtectedRoute allowedRoles={['clinic']}>
+            <ProtectedRoute allowedRoles={["clinic"]}>
               <ClinicAppointments />
             </ProtectedRoute>
           }
         />
 
-        <Route 
+        <Route
           path="/doctor-dashboard/settings"
           element={
-            <ProtectedRoute allowedRoles={['clinic']}>
+            <ProtectedRoute allowedRoles={["clinic"]}>
               <ClinicSettings />
             </ProtectedRoute>
           }
         />
 
         {/* 3. Pharmacy Routes (Dashboard + Scanner) */}
-        <Route 
-          path="/pharmacy-dashboard" 
+        <Route
+          path="/pharmacy-dashboard"
           element={
-            <ProtectedRoute allowedRoles={['pharmacy']}>
+            <ProtectedRoute allowedRoles={["pharmacy"]}>
               <PharmacyHome />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-  path="/pharmacy/inventory" 
-  element={
-    <ProtectedRoute allowedRoles={['pharmacy']}>
-      <PharmacyInventory />
-    </ProtectedRoute>
-  } 
-/>
-        
-        {/* THE ONE YOU ASKED FOR: Only Pharmacy can see this */}
-        <Route 
-          path="/inventory-scanner" 
+        <Route
+          path="/pharmacy/inventory"
           element={
-            <ProtectedRoute allowedRoles={['pharmacy']}>
+            <ProtectedRoute allowedRoles={["pharmacy"]}>
+              <PharmacyInventory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/pharmacy/profile"
+          element={
+            <ProtectedRoute allowedRoles={["pharmacy"]}>
+              <PharmacyProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* THE ONE YOU ASKED FOR: Only Pharmacy can see this */}
+        <Route
+          path="/inventory-scanner"
+          element={
+            <ProtectedRoute allowedRoles={["pharmacy"]}>
               <InventoryScanner />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Catch-all */}
