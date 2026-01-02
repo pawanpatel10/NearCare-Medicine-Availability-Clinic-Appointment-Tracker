@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig";
@@ -10,30 +16,47 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null); // 'user', 'clinic', or 'pharmacy'
   const [loading, setLoading] = useState(true);
 
+  // Function to fetch user data from Firestore
+  const fetchUserData = useCallback(async (user) => {
+    if (!user) {
+      setCurrentUser(null);
+      setUserRole(null);
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setUserRole(userData.role || null);
+        setCurrentUser({ ...user, ...userData });
+      } else {
+        setCurrentUser(user);
+        setUserRole(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      setCurrentUser(user);
+      setUserRole(null);
+    }
+  }, []);
+
+  // Function to manually refresh user data (call after profile update)
+  const refreshUser = useCallback(async () => {
+    const user = auth.currentUser;
+    if (user) {
+      await fetchUserData(user);
+    }
+  }, [fetchUserData]);
+
   useEffect(() => {
     // This listener runs whenever the user logs in or out
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is logged in, now let's find out WHO they are (Role)
-        try {
-          const docRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            const userData = docSnap.data();
-            setUserRole(userData.role);
-            // We combine Auth info + Database info into one object
-            setCurrentUser({ ...user, ...userData }); 
-          } else {
-            // New Google User who hasn't completed profile yet
-            setCurrentUser(user);
-            setUserRole(null); 
-          }
-        } catch (error) {
-          console.error("Error fetching user role:", error);
-        }
+        await fetchUserData(user);
       } else {
-        // User is logged out
         setCurrentUser(null);
         setUserRole(null);
       }
@@ -41,10 +64,12 @@ export const AuthProvider = ({ children }) => {
     });
 
     return unsubscribe;
-  }, []);
+  }, [fetchUserData]);
 
   return (
-    <AuthContext.Provider value={{ currentUser, userRole, loading }}>
+    <AuthContext.Provider
+      value={{ currentUser, userRole, loading, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
