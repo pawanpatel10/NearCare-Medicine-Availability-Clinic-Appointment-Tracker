@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 // Import all your pages
 import Login from './components/Login';
 import Signup from './components/Signup';
+import EmailVerification from './components/EmailVerification';
 import UserHome from './components/UserHome';
 import BookAppointment from "./components/BookAppointment";
 import ClinicBooking from "./components/ClinicBooking";
@@ -30,6 +31,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-email" element={<EmailVerification />} />
         
         {/* Helper Route (Accessible by logged in users only, any role) */}
         <Route 
