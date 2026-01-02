@@ -8,16 +8,63 @@ export default function BookAppointment() {
   const navigate = useNavigate();
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
+    // Try to get user location to sort clinics by proximity
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+          setLocationError(null);
+        },
+        (err) => {
+          console.warn("Could not get location:", err);
+          setLocationError("Location not available — showing clinics by wait time");
+          setUserLocation(null);
+        },
+        { enableHighAccuracy: true, timeout: 20000 }
+      );
+    } else {
+      setLocationError("Geolocation not supported");
+    }
+
     // 🔴 REAL-TIME listener (IMPORTANT)
+    // utility: calculate haversine distance in km
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    };
+
     const unsub = onSnapshot(collection(db, "clinics"), (snap) => {
-      const clinicList = snap.docs
+      let clinicList = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         // show only fully configured clinics
-        .filter(c => c.name && c.address && c.openTime && c.closeTime)
-        // sort by estimated wait (smart UX)
-        .sort((a, b) => {
+        .filter(c => c.name && c.address && c.openTime && c.closeTime);
+
+      // attach distance when userLocation is available
+      if (userLocation) {
+        clinicList = clinicList.map(c => {
+          if (c.lat && c.lng) {
+            return { ...c, distance: calculateDistance(userLocation[0], userLocation[1], c.lat, c.lng) };
+          }
+          return { ...c, distance: null };
+        });
+
+        // sort by distance (nearest first). Clinics without coords go to the end.
+        clinicList.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+      } else {
+        // fallback: sort by estimated wait
+        clinicList.sort((a, b) => {
           const waitA =
             Math.max((a.totalTokens || 0) - (a.currentToken || 0), 0) *
             (a.avgTimePerPatient || 10);
@@ -28,6 +75,7 @@ export default function BookAppointment() {
 
           return waitA - waitB;
         });
+      }
 
       setClinics(clinicList);
       setLoading(false);
@@ -49,11 +97,32 @@ export default function BookAppointment() {
           Book a Clinic Appointment
         </h1>
 
+        {/* Search input */}
+        <div className="mb-4">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search clinics by name or doctor"
+            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+
         {clinics.length === 0 ? (
           <p className="text-gray-500">No clinics available.</p>
         ) : (
           <div className="space-y-4">
-            {clinics.map((clinic) => {
+            {/** Filter clinics by search term (client-side) */}
+            {clinics
+              .filter((clinic) => {
+                if (!search) return true;
+                const term = search.toLowerCase().trim();
+                return (
+                  (clinic.name || "").toLowerCase().includes(term) ||
+                  (clinic.doctorName || "").toLowerCase().includes(term) ||
+                  (clinic.specialty || "").toLowerCase().includes(term)
+                );
+              })
+              .map((clinic) => {
               const isClosed = !clinic.openTime || !clinic.closeTime;
 
               const currentToken = clinic.currentToken || 0;
@@ -85,6 +154,12 @@ export default function BookAppointment() {
                     <p className="text-sm text-gray-600">
                       ⏰ {clinic.openTime} – {clinic.closeTime}
                     </p>
+
+                    {clinic.distance != null && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        📍 {clinic.distance < 1 ? `${(clinic.distance * 1000).toFixed(0)} m` : `${clinic.distance.toFixed(2)} km`} away
+                      </p>
+                    )}
 
                     <p className="text-sm font-semibold mt-1">
                       💰 Fees: ₹{clinic.fees}
