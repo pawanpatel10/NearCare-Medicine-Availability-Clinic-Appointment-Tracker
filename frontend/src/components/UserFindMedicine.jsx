@@ -51,7 +51,8 @@ const UserFindMedicine = () => {
 
   // 🔍 Search medicine → pharmacy users
   const handleSearch = async () => {
-    if (!search) return;
+    // Allow empty search only for clinics (show all clinics)
+    if (!search && searchType === "medicine") return;
 
     setLoading(true);
     setPlaces([]);
@@ -73,11 +74,70 @@ const UserFindMedicine = () => {
 
   // Search for medicine in pharmacies
   const searchMedicine = async () => {
-      // 1️⃣ Search inventory
+      // If search is empty, fetch all pharmacy inventory items and group by pharmacy
+      const term = search.toLowerCase().trim();
+      if (!term) {
+        const invQueryAll = query(
+          collection(db, "pharmacy_inventory"),
+          where("stock", ">", 0)
+        );
+
+        const inventorySnap = await getDocs(invQueryAll);
+        if (inventorySnap.empty) {
+          setNotFound(true);
+          return;
+        }
+
+        // Aggregate medicines per pharmacy
+        const map = new Map();
+        for (const docSnap of inventorySnap.docs) {
+          const item = docSnap.data();
+          try {
+            const userSnap = await getDoc(doc(db, "users", item.pharmacyId));
+            if (!userSnap.exists() || userSnap.data().role !== "pharmacy") continue;
+            const pharmacy = userSnap.data();
+            if (!pharmacy.lat || !pharmacy.lng) continue;
+
+            const existing = map.get(item.pharmacyId) || {
+              id: item.pharmacyId,
+              lat: pharmacy.lat,
+              lon: pharmacy.lng,
+              name: pharmacy.name,
+              address: pharmacy.address || "Address not available",
+              isOpen: pharmacy.isOpen,
+              medicines: []
+            };
+
+            existing.medicines.push({ name: item.name, price: item.price, dosage: item.dosage, type: item.type });
+            map.set(item.pharmacyId, existing);
+          } catch (err) {
+            console.error("Error fetching pharmacy for inventory", err);
+            continue;
+          }
+        }
+
+        const results = Array.from(map.values()).map((pharmacy) => {
+          const distance = userLocation
+            ? calculateDistance(userLocation[0], userLocation[1], pharmacy.lat, pharmacy.lon)
+            : Infinity;
+          return { ...pharmacy, distance, placeType: "pharmacy" };
+        });
+
+        if (results.length === 0) {
+          setNotFound(true);
+        } else {
+          results.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+        }
+
+        setPlaces(results);
+        return;
+      }
+
+      // 1️⃣ Search inventory by name
       const invQuery = query(
         collection(db, "pharmacy_inventory"),
-        where("name_lower", ">=", search.toLowerCase().trim()),
-        where("name_lower", "<=", search.toLowerCase().trim() + "\uf8ff"),
+        where("name_lower", ">=", term),
+        where("name_lower", "<=", term + "\uf8ff"),
         where("stock", ">", 0)
       );
 
@@ -88,7 +148,7 @@ const UserFindMedicine = () => {
         return;
       }
 
-      // 2️⃣ Fetch pharmacy users
+      // 2️⃣ Fetch pharmacy users for matched items
       const pharmacyPromises = inventorySnap.docs.map(async (docSnap) => {
         const item = docSnap.data();
         const userSnap = await getDoc(doc(db, "users", item.pharmacyId));
@@ -96,12 +156,9 @@ const UserFindMedicine = () => {
           const pharmacy = userSnap.data();
           if (!pharmacy.lat || !pharmacy.lng) return null;
 
-          const distance = calculateDistance(
-            userLocation[0],
-            userLocation[1],
-            pharmacy.lat,
-            pharmacy.lng
-          );
+          const distance = userLocation
+            ? calculateDistance(userLocation[0], userLocation[1], pharmacy.lat, pharmacy.lng)
+            : Infinity;
 
           return {
             id: item.pharmacyId,
@@ -233,6 +290,28 @@ const UserFindMedicine = () => {
     setPlaces(validResults);
   };
 
+  // Auto-search clinics (show all) when switching to clinic search and user location is available
+  useEffect(() => {
+    if (searchType === "clinic" && userLocation) {
+      // If user hasn't entered a search term, fetch all clinics sorted by distance
+      if (!search || search.trim() === "") {
+        (async () => {
+          setLoading(true);
+          setPlaces([]);
+          setNotFound(false);
+          try {
+            await searchClinic();
+          } catch (err) {
+            console.error("Auto search clinic error:", err);
+          } finally {
+            setLoading(false);
+          }
+        })();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchType, userLocation]);
+
   // Handle clicking on a place to show route
   const handlePlaceClick = (place) => {
     setSelectedPlace(place);
@@ -291,7 +370,7 @@ const UserFindMedicine = () => {
           placeholder={
             searchType === "medicine"
               ? "Search medicine (e.g. Oxitocin)"
-              : "Search by doctor name or clinic name"
+              : "Search by doctor or clinic name (leave empty to show all clinics nearby)"
           }
           className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
@@ -358,11 +437,11 @@ const UserFindMedicine = () => {
                       <div className="text-sm text-gray-500">📍 {p.distance < 1 ? `${(p.distance * 1000).toFixed(0)} m` : `${p.distance.toFixed(2)} km`} away</div>
                     </div>
                     {p.placeType === "pharmacy" && (
-                      p.isOpen ? (
-                        <span className="text-green-600 font-medium">Open</span>
-                      ) : (
-                        <span className="text-red-600 font-medium">Closed</span>
-                      )
+                        p.isOpen ? (
+                          <span className="text-green-600 font-medium">Open</span>
+                        ) : (
+                          <span className="text-red-600 font-medium">Closed</span>
+                        )
                     )}
                     {p.placeType === "clinic" && p.openTime && p.closeTime && (
                       <span className="text-gray-600 text-sm">
@@ -372,9 +451,22 @@ const UserFindMedicine = () => {
                   </div>
                   <div className="text-sm text-gray-600 mt-1">📍 {p.address}</div>
                   {p.placeType === "pharmacy" && (
-                    <div className="text-gray-800 mt-1">
-                      {p.medicine} - {p.type} - {p.dosage}mg - ₹{p.price}
-                    </div>
+                    p.medicines ? (
+                      <div className="text-gray-800 mt-1">
+                        {p.medicines.slice(0,3).map((m, i) => (
+                          <span key={i} className="inline-block mr-2">
+                            {m.name}{m.dosage ? ` - ${m.dosage}mg` : ""} - ₹{m.price}
+                          </span>
+                        ))}
+                        {p.medicines.length > 3 && (
+                          <span className="text-sm text-gray-600">+{p.medicines.length - 3} more</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-gray-800 mt-1">
+                        {p.medicine} - {p.type} - {p.dosage}mg - ₹{p.price}
+                      </div>
+                    )
                   )}
                   {p.placeType === "clinic" && p.fees && (
                     <div className="text-gray-800 mt-1">
