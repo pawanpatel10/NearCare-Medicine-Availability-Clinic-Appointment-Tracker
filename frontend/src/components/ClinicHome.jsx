@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   updateDoc,
-  increment,
   collection,
   query,
   where,
@@ -21,8 +20,8 @@ export default function ClinicHome() {
     totalTokens: 0
   });
   const [loading, setLoading] = useState(true);
+  const [hasServing, setHasServing] = useState(false);
 
-  // 🔹 Fetch Doctor Profile + Queue Status
   useEffect(() => {
     const fetchClinicData = async () => {
       try {
@@ -32,13 +31,9 @@ export default function ClinicHome() {
           return;
         }
 
-        // Doctor name
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          setDoctorName(userDoc.data().name);
-        }
+        if (userDoc.exists()) setDoctorName(userDoc.data().name);
 
-        // Queue data
         const clinicDoc = await getDoc(doc(db, "clinics", user.uid));
         if (clinicDoc.exists()) {
           const data = clinicDoc.data();
@@ -47,8 +42,14 @@ export default function ClinicHome() {
             totalTokens: data.totalTokens || 0
           });
         }
-      } catch (err) {
-        console.error("Error fetching clinic data:", err);
+
+        const servingQ = query(
+          collection(db, "appointments"),
+          where("clinicId", "==", user.uid),
+          where("status", "==", "serving")
+        );
+        const servingSnap = await getDocs(servingQ);
+        setHasServing(!servingSnap.empty);
       } finally {
         setLoading(false);
       }
@@ -57,68 +58,51 @@ export default function ClinicHome() {
     fetchClinicData();
   }, [navigate]);
 
-  // 🔥 Call Next Patient (REAL LOGIC)
   const callNextPatient = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (hasServing) return alert("Complete the current consultation first.");
 
-    const clinicId = user.uid;
-    const clinicRef = doc(db, "clinics", clinicId);
-
-    const current = queueStatus.currentToken;
-    const nextToken = current + 1;
-
-    // 🚫 No more patients
-    if (nextToken > queueStatus.totalTokens) return;
-
-    // 1️⃣ Complete CURRENT serving appointment
-    if (current > 0) {
-      const currentQ = query(
-        collection(db, "appointments"),
-        where("clinicId", "==", clinicId),
-        where("token", "==", current),
-        where("status", "==", "serving")
-      );
-
-      const currentSnap = await getDocs(currentQ);
-      for (const d of currentSnap.docs) {
-        await updateDoc(d.ref, { status: "completed" });
-      }
-    }
-
-    // 2️⃣ Mark NEXT appointment as serving
-    const nextQ = query(
+    const q = query(
       collection(db, "appointments"),
-      where("clinicId", "==", clinicId),
-      where("token", "==", nextToken),
+      where("clinicId", "==", auth.currentUser.uid),
       where("status", "==", "waiting")
     );
 
-    const nextSnap = await getDocs(nextQ);
-    for (const d of nextSnap.docs) {
-      await updateDoc(d.ref, { status: "serving" });
-    }
+    const snap = await getDocs(q);
+    if (snap.empty) return alert("No patients waiting.");
 
-    // 3️⃣ Increment clinic token LAST
-    await updateDoc(clinicRef, {
-      currentToken: nextToken
+    const next = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.token - b.token)[0];
+
+    await updateDoc(doc(db, "appointments", next.id), { status: "serving" });
+    await updateDoc(doc(db, "clinics", auth.currentUser.uid), {
+      currentToken: next.token
     });
 
-    // 4️⃣ Optimistic UI update
-    setQueueStatus(prev => ({
-      ...prev,
-      currentToken: nextToken
-    }));
+    setQueueStatus(p => ({ ...p, currentToken: next.token }));
+    setHasServing(true);
   };
 
+  const completeCurrentPatient = async () => {
+    const q = query(
+      collection(db, "appointments"),
+      where("clinicId", "==", auth.currentUser.uid),
+      where("status", "==", "serving")
+    );
 
+    const snap = await getDocs(q);
+    if (snap.empty) return;
+
+    await updateDoc(snap.docs[0].ref, { status: "completed" });
+    setHasServing(false);
+  };
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-blue-600 font-semibold">
-          Loading Dashboard...
-        </div>
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-emerald-50">
+        <p className="text-teal-700 font-semibold text-lg animate-pulse">
+          Loading Clinic Dashboard…
+        </p>
       </div>
     );
   }
@@ -128,93 +112,115 @@ export default function ClinicHome() {
     0
   );
 
-  const isQueueEmpty =
-    queueStatus.currentToken >= queueStatus.totalTokens;
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Welcome, Dr. {doctorName} 👋
+      <main className="max-w-7xl mx-auto px-6 py-10">
+        {/* HEADER */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-semibold text-gray-800">
+            Dr. {doctorName}
           </h1>
-          <p className="text-gray-500">
-            Manage your clinic and live queue from here.
+          <p className="text-gray-500 mt-1">
+            Live clinic operations & patient queue
           </p>
         </div>
 
-        {/* 🔥 Live Queue Status */}
-        <section className="bg-white rounded-2xl shadow-sm border border-blue-100 p-8 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50"></div>
+        {/* QUEUE PANEL */}
+        <section className="relative bg-white/80 backdrop-blur rounded-3xl border border-teal-100 shadow-xl p-10 mb-12">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-teal-100/40 to-blue-100/30" />
 
-          <div className="z-10 flex gap-10 items-center">
-            <div className="text-center">
-              <span className="text-6xl font-black text-gray-900">
-                #{queueStatus.currentToken}
-              </span>
-              <p className="text-gray-400 font-medium mt-1">
-                Serving
-              </p>
+          <div className="relative flex flex-col lg:flex-row justify-between gap-10">
+            <div className="flex gap-20">
+              <div>
+                <p className="text-xs tracking-widest uppercase text-gray-500">
+                  Current Token
+                </p>
+                <p className="text-6xl font-extrabold text-slate-900 mt-2">
+                  {queueStatus.currentToken}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs tracking-widest uppercase text-gray-500">
+                  Waiting Patients
+                </p>
+                <p className="text-5xl font-bold text-teal-600 mt-2">
+                  {waitingCount}
+                </p>
+              </div>
             </div>
 
-            <div className="text-center">
-              <span className="text-4xl font-bold text-blue-600">
-                {waitingCount}
-              </span>
-              <p className="text-gray-400 font-medium mt-1">
-                Waiting
-              </p>
+            {/* ACTIONS */}
+            <div className="flex flex-col gap-4 w-full lg:w-80">
+              <button
+                onClick={callNextPatient}
+                disabled={hasServing}
+                className={`py-4 rounded-xl font-semibold transition-all ${
+                  hasServing
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-lg hover:scale-[1.02]"
+                }`}
+              >
+                ▶ Call Next Patient
+              </button>
+
+              <button
+                onClick={completeCurrentPatient}
+                disabled={!hasServing}
+                className={`py-4 rounded-xl font-semibold transition-all ${
+                  hasServing
+                    ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg hover:scale-[1.02]"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                ✔ Mark Completed
+              </button>
             </div>
-          </div>
-
-          <div className="z-10 flex flex-col items-center">
-            <button
-              disabled={isQueueEmpty}
-              onClick={callNextPatient}
-              className={`px-8 py-4 rounded-xl text-lg font-bold text-white transition-all ${
-                isQueueEmpty
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200"
-              }`}
-            >
-              📢 Call Next Patient
-            </button>
-
-            {isQueueEmpty && (
-              <p className="text-xs text-gray-400 mt-2">
-                No patients waiting
-              </p>
-            )}
           </div>
         </section>
 
-        {/* Action Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* NAVIGATION CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* APPOINTMENTS */}
           <div
             onClick={() => navigate("/doctor-dashboard/appointments")}
-            className="bg-white p-6 rounded-xl border hover:shadow-md cursor-pointer"
+            className="group cursor-pointer rounded-3xl bg-gradient-to-br from-blue-600 to-teal-600 p-[2px] hover:scale-[1.02] transition"
           >
-            <h3 className="text-lg font-bold">
-              Today's Appointments
-            </h3>
-            <p className="text-gray-500 text-sm">
-              View live queue & patient status
-            </p>
+            <div className="h-full rounded-3xl bg-white p-8">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600 text-xl">
+                  📋
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Today’s Appointments
+                </h3>
+              </div>
+              <p className="text-gray-500">
+                Track live queue, tokens, and consultation status in real time.
+              </p>
+            </div>
           </div>
 
+          {/* SETTINGS */}
           <div
             onClick={() => navigate("/doctor-dashboard/settings")}
-            className="bg-white p-6 rounded-xl border hover:shadow-md cursor-pointer"
+            className="group cursor-pointer rounded-3xl bg-gradient-to-br from-emerald-600 to-green-600 p-[2px] hover:scale-[1.02] transition"
           >
-            <h3 className="text-lg font-bold">
-              Manage Clinic Profile
-            </h3>
-            <p className="text-gray-500 text-sm">
-              Update hours, location, and fees
-            </p>
+            <div className="h-full rounded-3xl bg-white p-8">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-xl">
+                  ⚙️
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Clinic Settings
+                </h3>
+              </div>
+              <p className="text-gray-500">
+                Manage clinic profile, timings, fees, and availability.
+              </p>
+            </div>
           </div>
         </div>
       </main>

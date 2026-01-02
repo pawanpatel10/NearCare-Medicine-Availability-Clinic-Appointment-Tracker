@@ -20,7 +20,6 @@ export default function MyAppointments() {
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState(null);
 
-  // ❌ Cancel appointment
   const cancelAppointment = async (id, status) => {
     if (
       !id ||
@@ -58,13 +57,11 @@ export default function MyAppointments() {
     const q = query(
       collection(db, "appointments"),
       where("userId", "==", currentUser.uid)
-      //orderBy("createdAt", "desc")
     );
 
     const unsub = onSnapshot(
       q,
       async (snap) => {
-        // ✅ SORT NEWEST FIRST
         const appts = snap.docs
           .map(d => ({
             id: d.id,
@@ -75,9 +72,9 @@ export default function MyAppointments() {
             const t2 = b.createdAt?.seconds || 0;
             return t2 - t1;
           });
+
         setAppointments(appts);
 
-        // 🔹 Load clinic data
         const clinicIds = [...new Set(appts.map(a => a.clinicId))];
         const map = {};
 
@@ -101,83 +98,88 @@ export default function MyAppointments() {
   }, [authLoading, currentUser]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-emerald-100">
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">
           My Appointments
         </h1>
 
-        <p className="text-lg text-gray-600 mb-6">
+        <p className="text-lg text-slate-700 mb-6">
           Please wait comfortably. We will keep you updated.
         </p>
 
-        <div className="bg-white/70 rounded-2xl shadow-md p-5 max-h-[65vh] overflow-y-auto">
-          {loading ? (
-            <p className="text-gray-600">Loading appointments…</p>
-          ) : appointments.length === 0 ? (
-            <p className="text-gray-600">You have no appointments.</p>
-          ) : (
-            <div className="space-y-4">
-              {appointments.map(a => {
-                const status = (a.status || "waiting").toLowerCase();
-                const clinic = clinicMap[a.clinicId];
+        {loading ? (
+          <p className="text-slate-700">Loading appointments…</p>
+        ) : appointments.length === 0 ? (
+          <p className="text-slate-700">You have no appointments.</p>
+        ) : (
+          <div className="space-y-6">
+            {appointments.map(a => {
+              const status = (a.status || "waiting").toLowerCase();
+              const clinic = clinicMap[a.clinicId];
 
-                let statusText = status.toUpperCase();
-                let etaText = null;
-                let badgeStyle =
-                  "bg-yellow-100 text-yellow-800";
+              let statusText = status.toUpperCase();
+              let etaText = null;
+              let badgeStyle =
+                "bg-yellow-200 text-yellow-900 border border-yellow-400";
 
-                if (status === "cancelled") {
-                  badgeStyle = "bg-red-100 text-red-700";
-                } else if (status === "completed") {
-                  badgeStyle = "bg-gray-200 text-gray-700";
-                } else if (status === "serving") {
-                  badgeStyle = "bg-green-100 text-green-800";
+              if (status === "cancelled") {
+                badgeStyle = "bg-red-200 text-red-800 border border-red-400";
+              } else if (status === "completed") {
+                badgeStyle = "bg-slate-200 text-slate-700 border border-slate-400";
+              } else if (status === "serving") {
+                badgeStyle =
+                  "bg-emerald-200 text-emerald-800 border border-emerald-400";
+                etaText = "🩺 It's your turn. Please come to the clinic.";
+              } else if (clinic) {
+                const currentToken = clinic.currentToken || 0;
+                const avgTime = clinic.avgTimePerPatient || 10;
+                const remaining = a.token - currentToken - 1;
+
+                if (remaining <= 0) {
                   etaText = "🩺 It's your turn. Please come to the clinic.";
-                } else if (clinic) {
-                  const currentToken = clinic.currentToken || 0;
-                  const avgTime = clinic.avgTimePerPatient || 10;
-
-                  const remaining =
-                    a.token - currentToken - 1;
-
-                  if (remaining <= 0) {
-                    etaText = "🩺 It's your turn. Please come to the clinic.";
-                    badgeStyle = "bg-green-100 text-green-800";
-                  } else {
-                    etaText = `⏳ Estimated wait: ~${remaining * avgTime} mins`;
-                  }
+                  badgeStyle =
+                    "bg-emerald-200 text-emerald-800 border border-emerald-400";
+                } else {
+                  etaText = `⏳ Estimated wait: ~${remaining * avgTime} mins`;
                 }
+              }
 
-                return (
-                  <div
-                    key={a.id}
-                    className="border rounded-xl px-4 py-3 flex items-center justify-between"
-                  >
+              return (
+                <div
+                  key={a.id}
+                  className="relative rounded-2xl p-[1.5px]
+                             bg-gradient-to-r from-slate-400 to-slate-300
+                             hover:from-teal-600 hover:to-emerald-600
+                             transition"
+                >
+                  <div className="bg-white rounded-2xl px-5 py-4 shadow-md hover:shadow-xl transition flex items-center justify-between">
+                    {/* LEFT */}
                     <div className="space-y-1">
-                      <p className="text-lg font-semibold text-gray-800">
+                      <p className="text-lg font-semibold text-slate-900">
                         🏥 {a.clinicName}
                       </p>
 
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-700">
                         Token #{a.token}
                       </p>
 
                       {etaText && (
-                        <p className="text-sm text-blue-700">
+                        <p className="text-sm text-blue-800 font-medium">
                           {etaText}
                         </p>
                       )}
 
                       <span
-                        className={`inline-block mt-1 px-3 py-1 text-xs font-semibold rounded-full ${badgeStyle}`}
+                        className={`inline-block mt-2 px-3 py-1 text-xs font-bold rounded-full ${badgeStyle}`}
                       >
                         {statusText}
                       </span>
                     </div>
 
+                    {/* RIGHT */}
                     <button
                       onClick={() =>
                         cancelAppointment(a.id, status)
@@ -188,18 +190,21 @@ export default function MyAppointments() {
                         status === "completed" ||
                         status === "cancelled"
                       }
-                      className="ml-3 px-4 py-2 text-sm font-semibold border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="ml-4 px-4 py-2 text-sm font-bold rounded-xl
+                                 border border-red-400 text-red-700
+                                 hover:bg-red-100 transition cursor-pointer
+                                 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {cancelingId === a.id
                         ? "Cancelling..."
                         : "Cancel"}
                     </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

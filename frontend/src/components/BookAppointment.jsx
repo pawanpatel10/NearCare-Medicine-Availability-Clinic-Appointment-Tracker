@@ -13,68 +13,55 @@ export default function BookAppointment() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    // Try to get user location to sort clinics by proximity
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setUserLocation([pos.coords.latitude, pos.coords.longitude]);
           setLocationError(null);
         },
-        (err) => {
-          console.warn("Could not get location:", err);
+        () => {
           setLocationError("Location not available — showing clinics by wait time");
           setUserLocation(null);
         },
         { enableHighAccuracy: true, timeout: 20000 }
       );
-    } else {
-      setLocationError("Geolocation not supported");
     }
 
-    // 🔴 REAL-TIME listener (IMPORTANT)
-    // utility: calculate haversine distance in km
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a =
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+          Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
     const unsub = onSnapshot(collection(db, "clinics"), (snap) => {
       let clinicList = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        // show only fully configured clinics
         .filter(c => c.name && c.address && c.openTime && c.closeTime);
 
-      // attach distance when userLocation is available
       if (userLocation) {
-        clinicList = clinicList.map(c => {
-          if (c.lat && c.lng) {
-            return { ...c, distance: calculateDistance(userLocation[0], userLocation[1], c.lat, c.lng) };
-          }
-          return { ...c, distance: null };
-        });
+        clinicList = clinicList.map(c =>
+          c.lat && c.lng
+            ? {
+                ...c,
+                distance: calculateDistance(
+                  userLocation[0],
+                  userLocation[1],
+                  c.lat,
+                  c.lng
+                )
+              }
+            : { ...c, distance: null }
+        );
 
-        // sort by distance (nearest first). Clinics without coords go to the end.
-        clinicList.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-      } else {
-        // fallback: sort by estimated wait
-        clinicList.sort((a, b) => {
-          const waitA =
-            Math.max((a.totalTokens || 0) - (a.currentToken || 0), 0) *
-            (a.avgTimePerPatient || 10);
-
-          const waitB =
-            Math.max((b.totalTokens || 0) - (b.currentToken || 0), 0) *
-            (b.avgTimePerPatient || 10);
-
-          return waitA - waitB;
-        });
+        clinicList.sort(
+          (a, b) => (a.distance || Infinity) - (b.distance || Infinity)
+        );
       }
 
       setClinics(clinicList);
@@ -86,36 +73,37 @@ export default function BookAppointment() {
 
   if (loading) {
     return (
-      <div className="p-6 text-lg text-gray-600">
-        Loading clinics…
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-emerald-100">
+        <p className="text-slate-700 font-semibold">Loading clinics…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-  <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-emerald-100">
+      <Navbar />
 
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">
+        <h1 className="text-2xl font-bold mb-6 text-slate-900">
           Book a Clinic Appointment
         </h1>
 
-        {/* Search input */}
-        <div className="mb-4">
+        {/* Search */}
+        <div className="mb-6">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clinics by name or doctor"
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-3 rounded-xl border border-slate-400
+                       focus:outline-none focus:ring-2 focus:ring-teal-600
+                       text-slate-900 placeholder-slate-500"
           />
         </div>
 
         {clinics.length === 0 ? (
-          <p className="text-gray-500">No clinics available.</p>
+          <p className="text-slate-600">No clinics available.</p>
         ) : (
-          <div className="space-y-4">
-            {/** Filter clinics by search term (client-side) */}
+          <div className="space-y-5">
             {clinics
               .filter((clinic) => {
                 if (!search) return true;
@@ -127,91 +115,94 @@ export default function BookAppointment() {
                 );
               })
               .map((clinic) => {
-              const isClosed = !clinic.openTime || !clinic.closeTime;
+                const isClosed = !clinic.openTime || !clinic.closeTime;
 
-          const currentToken = clinic.currentToken || 0;
-          const totalTokens = clinic.totalTokens || 0;
-          const avgTime = clinic.avgTimePerPatient || 10;
+                const currentToken = clinic.currentToken || 0;
+                const totalTokens = clinic.totalTokens || 0;
+                const avgTime = clinic.avgTimePerPatient || 10;
 
-          const waitingCount = Math.max(
-            totalTokens - currentToken,
-            0
-          );
+                const waitingCount = Math.max(totalTokens - currentToken, 0);
 
-          const estimatedWait =
-            waitingCount === 0
-              ? "No wait"
-              : `~${waitingCount * avgTime} mins`;
+                const estimatedWait =
+                  waitingCount === 0
+                    ? "No wait"
+                    : `~${waitingCount * avgTime} mins`;
 
-          const waitBadge =
-            waitingCount === 0
-              ? "bg-green-100 text-green-700"
-              : waitingCount <= 4
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-red-100 text-red-700";
+                const waitBadge =
+                  waitingCount === 0
+                    ? "bg-emerald-200 text-emerald-800"
+                    : waitingCount <= 4
+                    ? "bg-yellow-200 text-yellow-900"
+                    : "bg-red-200 text-red-800";
 
-          return (
-            <div
-              key={clinic.id}
-              className="bg-white px-4 py-3 rounded-lg border shadow-sm
-                         hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-center">
-                {/* LEFT */}
-                <div className="space-y-1">
-                  <p className="font-semibold text-gray-800">
-                    🏥 {clinic.name}
-                  </p>
+                return (
+                  <div
+                    key={clinic.id}
+                    className="relative rounded-2xl p-[1.5px]
+                               bg-gradient-to-r from-slate-400 to-slate-300
+                               hover:from-teal-600 hover:to-emerald-600
+                               transition cursor-pointer"
+                  >
+                    <div className="bg-white rounded-2xl p-5 shadow-md hover:shadow-xl transition">
+                      <div className="flex justify-between items-start gap-4">
+                        {/* LEFT */}
+                        <div className="space-y-1">
+                          <p className="font-semibold text-slate-900">
+                            🏥 {clinic.name}
+                          </p>
 
-                  <p className="text-xs text-gray-600">
-                    📍 {clinic.address}
-                  </p>
+                          <p className="text-xs text-slate-700">
+                            📍 {clinic.address}
+                          </p>
 
-                    <p className="text-sm text-gray-600">
-                      ⏰ {clinic.openTime} – {clinic.closeTime}
-                    </p>
+                          <p className="text-sm text-slate-700">
+                            ⏰ {clinic.openTime} – {clinic.closeTime}
+                          </p>
 
-                    {clinic.distance != null && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        📍 {clinic.distance < 1 ? `${(clinic.distance * 1000).toFixed(0)} m` : `${clinic.distance.toFixed(2)} km`} away
-                      </p>
-                    )}
+                          {clinic.distance != null && (
+                            <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-cyan-200 text-cyan-900">
+                              📍 {clinic.distance < 1
+                                ? `${(clinic.distance * 1000).toFixed(0)} m`
+                                : `${clinic.distance.toFixed(2)} km`} away
+                            </span>
+                          )}
 
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-medium text-gray-700">
-                      💰 ₹{clinic.fees}
-                    </span>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-xs font-semibold text-slate-800">
+                              💰 ₹{clinic.fees}
+                            </span>
 
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${waitBadge}`}
-                    >
-                      ⏳ {estimatedWait}
-                    </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs font-bold ${waitBadge}`}
+                            >
+                              ⏳ {estimatedWait}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* RIGHT */}
+                        <button
+                          disabled={isClosed}
+                          onClick={() =>
+                            navigate(`/book-appointment/${clinic.id}`)
+                          }
+                          className={`px-4 py-2 rounded-xl text-sm font-bold
+                            cursor-pointer transition ${
+                              isClosed
+                                ? "bg-slate-400 text-slate-600 cursor-not-allowed"
+                                : "bg-gradient-to-r from-teal-700 to-emerald-700 text-white hover:scale-[1.05] shadow-lg"
+                            }`}
+                        >
+                          {isClosed ? "Closed" : "Select"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                {/* RIGHT */}
-                <button
-                  disabled={isClosed}
-                  onClick={() =>
-                    navigate(`/book-appointment/${clinic.id}`)
-                  }
-                  className={`px-4 py-1.5 text-sm rounded-md font-semibold
-                    transition ${
-                      isClosed
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                >
-                  {isClosed ? "Closed" : "Select"}
-                </button>
-              </div>
-            </div>
-          );
-        })}
+                );
+              })}
+          </div>
+        )}
       </div>
-    )}
-  </div>
-</div>
+    </div>
   );
 }
