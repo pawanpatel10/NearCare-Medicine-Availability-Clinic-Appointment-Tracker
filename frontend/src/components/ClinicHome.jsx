@@ -14,14 +14,14 @@ import Navbar from "./Navbar";
 
 export default function ClinicHome() {
   const navigate = useNavigate();
-  const [doctorName, setDoctorName] = useState("Doctor");
-  const [queueStatus, setQueueStatus] = useState({
-    currentToken: 0,
-    totalTokens: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [hasServing, setHasServing] = useState(false);
 
+  const [doctorName, setDoctorName] = useState("Doctor");
+  const [currentToken, setCurrentToken] = useState(0);
+  const [waitingCount, setWaitingCount] = useState(0);
+  const [hasServing, setHasServing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // 🔹 Fetch clinic + queue status
   useEffect(() => {
     const fetchClinicData = async () => {
       try {
@@ -31,18 +31,19 @@ export default function ClinicHome() {
           return;
         }
 
+        // Doctor name
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) setDoctorName(userDoc.data().name);
-
-        const clinicDoc = await getDoc(doc(db, "clinics", user.uid));
-        if (clinicDoc.exists()) {
-          const data = clinicDoc.data();
-          setQueueStatus({
-            currentToken: data.currentToken || 0,
-            totalTokens: data.totalTokens || 0
-          });
+        if (userDoc.exists()) {
+          setDoctorName(userDoc.data().name);
         }
 
+        // Clinic current token
+        const clinicDoc = await getDoc(doc(db, "clinics", user.uid));
+        if (clinicDoc.exists()) {
+          setCurrentToken(clinicDoc.data().currentToken || 0);
+        }
+
+        // 🔹 Check if someone is being served
         const servingQ = query(
           collection(db, "appointments"),
           where("clinicId", "==", user.uid),
@@ -50,6 +51,18 @@ export default function ClinicHome() {
         );
         const servingSnap = await getDocs(servingQ);
         setHasServing(!servingSnap.empty);
+
+        // 🔹 Count ONLY waiting patients (ignore cancelled/completed)
+        const waitingQ = query(
+          collection(db, "appointments"),
+          where("clinicId", "==", user.uid),
+          where("status", "==", "waiting")
+        );
+        const waitingSnap = await getDocs(waitingQ);
+        setWaitingCount(waitingSnap.size);
+
+      } catch (err) {
+        console.error("ClinicHome fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -58,42 +71,66 @@ export default function ClinicHome() {
     fetchClinicData();
   }, [navigate]);
 
+  // ▶ CALL NEXT PATIENT
   const callNextPatient = async () => {
-    if (hasServing) return alert("Complete the current consultation first.");
+    if (hasServing) {
+      alert("Please complete the current consultation first.");
+      return;
+    }
+
+    const clinicId = auth.currentUser.uid;
 
     const q = query(
       collection(db, "appointments"),
-      where("clinicId", "==", auth.currentUser.uid),
+      where("clinicId", "==", clinicId),
       where("status", "==", "waiting")
     );
 
     const snap = await getDocs(q);
-    if (snap.empty) return alert("No patients waiting.");
+    if (snap.empty) {
+      alert("No patients waiting.");
+      return;
+    }
 
     const next = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => a.token - b.token)[0];
 
-    await updateDoc(doc(db, "appointments", next.id), { status: "serving" });
-    await updateDoc(doc(db, "clinics", auth.currentUser.uid), {
+    // Mark as serving
+    await updateDoc(doc(db, "appointments", next.id), {
+      status: "serving"
+    });
+
+    // Update clinic current token
+    await updateDoc(doc(db, "clinics", clinicId), {
       currentToken: next.token
     });
 
-    setQueueStatus(p => ({ ...p, currentToken: next.token }));
+    setCurrentToken(next.token);
+    setWaitingCount(c => Math.max(c - 1, 0));
     setHasServing(true);
   };
 
+  // ✅ COMPLETE CURRENT PATIENT
   const completeCurrentPatient = async () => {
+    const clinicId = auth.currentUser.uid;
+
     const q = query(
       collection(db, "appointments"),
-      where("clinicId", "==", auth.currentUser.uid),
+      where("clinicId", "==", clinicId),
       where("status", "==", "serving")
     );
 
     const snap = await getDocs(q);
-    if (snap.empty) return;
+    if (snap.empty) {
+      alert("No patient is currently being served.");
+      return;
+    }
 
-    await updateDoc(snap.docs[0].ref, { status: "completed" });
+    await updateDoc(snap.docs[0].ref, {
+      status: "completed"
+    });
+
     setHasServing(false);
   };
 
@@ -106,11 +143,6 @@ export default function ClinicHome() {
       </div>
     );
   }
-
-  const waitingCount = Math.max(
-    queueStatus.totalTokens - queueStatus.currentToken,
-    0
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
@@ -138,7 +170,7 @@ export default function ClinicHome() {
                   Current Token
                 </p>
                 <p className="text-6xl font-extrabold text-slate-900 mt-2">
-                  {queueStatus.currentToken}
+                  {currentToken}
                 </p>
               </div>
 
@@ -183,42 +215,30 @@ export default function ClinicHome() {
 
         {/* NAVIGATION CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* APPOINTMENTS */}
           <div
             onClick={() => navigate("/doctor-dashboard/appointments")}
             className="group cursor-pointer rounded-3xl bg-gradient-to-br from-blue-600 to-teal-600 p-[2px] hover:scale-[1.02] transition"
           >
             <div className="h-full rounded-3xl bg-white p-8">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-12 w-12 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600 text-xl">
-                  📋
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Today’s Appointments
-                </h3>
-              </div>
-              <p className="text-gray-500">
-                Track live queue, tokens, and consultation status in real time.
+              <h3 className="text-xl font-semibold text-gray-800">
+                Today’s Appointments
+              </h3>
+              <p className="text-gray-500 mt-1">
+                View live queue & patient status
               </p>
             </div>
           </div>
 
-          {/* SETTINGS */}
           <div
             onClick={() => navigate("/doctor-dashboard/settings")}
             className="group cursor-pointer rounded-3xl bg-gradient-to-br from-emerald-600 to-green-600 p-[2px] hover:scale-[1.02] transition"
           >
             <div className="h-full rounded-3xl bg-white p-8">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-xl">
-                  ⚙️
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Clinic Settings
-                </h3>
-              </div>
-              <p className="text-gray-500">
-                Manage clinic profile, timings, fees, and availability.
+              <h3 className="text-xl font-semibold text-gray-800">
+                Clinic Settings
+              </h3>
+              <p className="text-gray-500 mt-1">
+                Manage clinic profile & timings
               </p>
             </div>
           </div>

@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
-import { collection, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where
+} from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
 export default function BookAppointment() {
   const navigate = useNavigate();
+
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [search, setSearch] = useState("");
 
+  // 🔥 NEW: waiting count per clinic (STATUS BASED)
+  const [waitingMap, setWaitingMap] = useState({});
+
   useEffect(() => {
+    // 🌍 Location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -20,7 +30,9 @@ export default function BookAppointment() {
           setLocationError(null);
         },
         () => {
-          setLocationError("Location not available — showing clinics by wait time");
+          setLocationError(
+            "Location not available — showing clinics by wait time"
+          );
           setUserLocation(null);
         },
         { enableHighAccuracy: true, timeout: 20000 }
@@ -29,17 +41,18 @@ export default function BookAppointment() {
 
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
       const a =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos(lat1 * Math.PI / 180) *
-          Math.cos(lat2 * Math.PI / 180) *
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
           Math.sin(dLon / 2) ** 2;
       return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
-    const unsub = onSnapshot(collection(db, "clinics"), (snap) => {
+    // 🔹 Clinics listener
+    const unsubClinics = onSnapshot(collection(db, "clinics"), (snap) => {
       let clinicList = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(c => c.name && c.address && c.openTime && c.closeTime);
@@ -68,8 +81,26 @@ export default function BookAppointment() {
       setLoading(false);
     });
 
-    return () => unsub();
-  }, []);
+    // 🔥 FIX: listen ONLY to WAITING appointments
+    const waitingQ = query(
+      collection(db, "appointments"),
+      where("status", "==", "waiting")
+    );
+
+    const unsubWaiting = onSnapshot(waitingQ, (snap) => {
+      const map = {};
+      snap.docs.forEach(d => {
+        const { clinicId } = d.data();
+        map[clinicId] = (map[clinicId] || 0) + 1;
+      });
+      setWaitingMap(map);
+    });
+
+    return () => {
+      unsubClinics();
+      unsubWaiting();
+    };
+  }, [userLocation]);
 
   if (loading) {
     return (
@@ -117,11 +148,9 @@ export default function BookAppointment() {
               .map((clinic) => {
                 const isClosed = !clinic.openTime || !clinic.closeTime;
 
-                const currentToken = clinic.currentToken || 0;
-                const totalTokens = clinic.totalTokens || 0;
+                // ✅ FIXED WAITING COUNT
+                const waitingCount = waitingMap[clinic.id] || 0;
                 const avgTime = clinic.avgTimePerPatient || 10;
-
-                const waitingCount = Math.max(totalTokens - currentToken, 0);
 
                 const estimatedWait =
                   waitingCount === 0
@@ -145,7 +174,6 @@ export default function BookAppointment() {
                   >
                     <div className="bg-white rounded-2xl p-5 shadow-md hover:shadow-xl transition">
                       <div className="flex justify-between items-start gap-4">
-                        {/* LEFT */}
                         <div className="space-y-1">
                           <p className="font-semibold text-slate-900">
                             🏥 {clinic.name}
@@ -180,14 +208,13 @@ export default function BookAppointment() {
                           </div>
                         </div>
 
-                        {/* RIGHT */}
                         <button
                           disabled={isClosed}
                           onClick={() =>
                             navigate(`/book-appointment/${clinic.id}`)
                           }
                           className={`px-4 py-2 rounded-xl text-sm font-bold
-                            cursor-pointer transition ${
+                            transition ${
                               isClosed
                                 ? "bg-slate-400 text-slate-600 cursor-not-allowed"
                                 : "bg-gradient-to-r from-teal-700 to-emerald-700 text-white hover:scale-[1.05] shadow-lg"
