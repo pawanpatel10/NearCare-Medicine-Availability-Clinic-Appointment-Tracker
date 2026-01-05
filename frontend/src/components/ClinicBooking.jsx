@@ -8,9 +8,7 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp,
-  updateDoc,
-  increment
+  serverTimestamp
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
@@ -22,6 +20,10 @@ export default function ClinicBooking() {
   const [clinic, setClinic] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔥 live waiting count
+  const [waitingCount, setWaitingCount] = useState(0);
+
+  // 🔹 Load clinic
   useEffect(() => {
     const loadClinic = async () => {
       const snap = await getDoc(doc(db, "clinics", clinicId));
@@ -30,8 +32,21 @@ export default function ClinicBooking() {
       }
       setLoading(false);
     };
-
     loadClinic();
+  }, [clinicId]);
+
+  // 🔥 count ONLY waiting appointments
+  useEffect(() => {
+    const fetchWaiting = async () => {
+      const q = query(
+        collection(db, "appointments"),
+        where("clinicId", "==", clinicId),
+        where("status", "==", "waiting")
+      );
+      const snap = await getDocs(q);
+      setWaitingCount(snap.size);
+    };
+    fetchWaiting();
   }, [clinicId]);
 
   const bookAppointment = async () => {
@@ -39,6 +54,7 @@ export default function ClinicBooking() {
 
     const userId = auth.currentUser.uid;
 
+    // ✅ block multiple active bookings
     const existingQuery = query(
       collection(db, "appointments"),
       where("clinicId", "==", clinicId),
@@ -47,24 +63,14 @@ export default function ClinicBooking() {
     );
 
     const existingSnap = await getDocs(existingQuery);
-
     if (!existingSnap.empty) {
       alert("You already have an active appointment at this clinic.");
       return;
     }
 
-    const tokenQuery = query(
-      collection(db, "appointments"),
-      where("clinicId", "==", clinicId)
-    );
-
-    const tokenSnap = await getDocs(tokenQuery);
-    const activeCount = tokenSnap.docs.filter((d) => {
-      const status = (d.data().status || "active").toLowerCase();
-      return status !== "cancelled";
-    }).length;
-
-    const nextToken = activeCount + 1;
+    // 🔢 token = currentToken + waiting + 1
+    const currentToken = clinic.currentToken || 0;
+    const nextToken = currentToken + waitingCount + 1;
 
     await addDoc(collection(db, "appointments"), {
       clinicId,
@@ -74,10 +80,6 @@ export default function ClinicBooking() {
       token: nextToken,
       status: "waiting",
       createdAt: serverTimestamp()
-    });
-
-    await updateDoc(doc(db, "clinics", clinicId), {
-      totalTokens: increment(1)
     });
 
     alert(`Appointment booked! Your token number is ${nextToken}`);
@@ -100,15 +102,35 @@ export default function ClinicBooking() {
     );
   }
 
-  const isClosed = !clinic.openTime || !clinic.closeTime;
-
-  const currentToken = clinic.currentToken || 0;
-  const totalTokens = clinic.totalTokens || 0;
   const avgTime = clinic.avgTimePerPatient || 10;
 
-  const waitingCount = Math.max(totalTokens - currentToken, 0);
+  // 🕒 TIME LOGIC (same as BookAppointment)
+  const now = new Date();
+
+  const [openH, openM] = clinic.openTime.split(":").map(Number);
+  const [closeH, closeM] = clinic.closeTime.split(":").map(Number);
+
+  const openingTime = new Date(now);
+  openingTime.setHours(openH, openM, 0, 0);
+
+  const closingTime = new Date(now);
+  closingTime.setHours(closeH, closeM, 0, 0);
+
+  const effectiveStart = now < openingTime ? openingTime : now;
+
+  const estimatedServiceTime = new Date(
+    effectiveStart.getTime() + waitingCount * avgTime * 60000
+  );
+
+  const outOfTimeRange = estimatedServiceTime > closingTime;
+
+  // ⏳ ETA DISPLAY
   const estimatedWait =
-    waitingCount === 0 ? "No wait" : `~${waitingCount * avgTime} mins`;
+    waitingCount === 0
+      ? now < openingTime
+        ? `Opens at ${clinic.openTime}`
+        : "No wait"
+      : `~${waitingCount * avgTime} mins`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-emerald-100">
@@ -142,17 +164,23 @@ export default function ClinicBooking() {
               ⏳ Estimated wait: {estimatedWait}
             </div>
 
+            {outOfTimeRange && (
+              <p className="text-sm text-red-700 font-medium mt-2">
+                ⚠️ No slots available today
+              </p>
+            )}
+
             <button
-              disabled={isClosed}
+              disabled={outOfTimeRange}
               onClick={bookAppointment}
               className={`w-full py-3 mt-8 rounded-xl font-bold text-white
                 transition cursor-pointer ${
-                  isClosed
+                  outOfTimeRange
                     ? "bg-slate-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-teal-700 to-emerald-700 hover:scale-[1.02] shadow-lg"
                 }`}
             >
-              {isClosed ? "Clinic Closed" : "Confirm Appointment"}
+              {outOfTimeRange ? "Fully Booked" : "Confirm Appointment"}
             </button>
           </div>
         </div>
