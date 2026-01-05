@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { db } from "../firebaseConfig";
 import {
   collection,
   onSnapshot,
   query,
-  where
+  where,
+  limit,
+  orderBy
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -18,12 +20,35 @@ export default function BookAppointment() {
   const [locationError, setLocationError] = useState(null);
   const [search, setSearch] = useState("");
 
-  // 🔥 NEW: waiting count per clinic (STATUS BASED)
+  // 🔥 Waiting count per clinic (STATUS BASED)
   const [waitingMap, setWaitingMap] = useState({});
+  
+  // 🔥 Cache distance calculations
+  const distanceCache = useRef({});
 
+  // 🔥 Memoize distance calculation function
+  const calculateDistance = useMemo(() => {
+    return (lat1, lon1, lat2, lon2) => {
+      const key = `${lat1},${lon1},${lat2},${lon2}`;
+      if (distanceCache.current[key]) return distanceCache.current[key];
+
+      const R = 6371;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) ** 2;
+      const dist = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      distanceCache.current[key] = dist;
+      return dist;
+    };
+  }, []);
+
+  // 🔥 Get location once, don't re-fetch
   useEffect(() => {
-    // 🌍 Location
-    if (navigator.geolocation) {
+    if (!userLocation && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setUserLocation([pos.coords.latitude, pos.coords.longitude]);
@@ -35,24 +60,21 @@ export default function BookAppointment() {
           );
           setUserLocation(null);
         },
-        { enableHighAccuracy: true, timeout: 20000 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
       );
     }
+  }, [userLocation]);
 
-    const calculateDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371;
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) ** 2;
-      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    };
+  // 🔥 Load clinics with limit (only 50 at a time)
+  useEffect(() => {
+    // 🔹 Use limit to reduce data transfer
+    const clinicQuery = query(
+      collection(db, "clinics"),
+      orderBy("name"),
+      limit(50)
+    );
 
-    // 🔹 Clinics listener
-    const unsubClinics = onSnapshot(collection(db, "clinics"), (snap) => {
+    const unsubClinics = onSnapshot(clinicQuery, (snap) => {
       let clinicList = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(c => c.name && c.address && c.openTime && c.closeTime);
@@ -81,7 +103,7 @@ export default function BookAppointment() {
       setLoading(false);
     });
 
-    // 🔥 FIX: listen ONLY to WAITING appointments
+    // 🔥 Separate waiting count listener (won't re-fetch clinics)
     const waitingQ = query(
       collection(db, "appointments"),
       where("status", "==", "waiting")
@@ -100,7 +122,7 @@ export default function BookAppointment() {
       unsubClinics();
       unsubWaiting();
     };
-  }, [userLocation]);
+  }, [userLocation, calculateDistance]);
 
   if (loading) {
     return (
