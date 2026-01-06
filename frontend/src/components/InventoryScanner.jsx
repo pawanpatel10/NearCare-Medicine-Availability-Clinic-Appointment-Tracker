@@ -11,6 +11,12 @@ export default function InventoryScanner() {
   const [scannedItems, setScannedItems] = useState([]); // Stores the AI results
   const [previewUrl, setPreviewUrl] = useState(null);
 
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...scannedItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setScannedItems(updatedItems);
+  };
+
   const handleImageUpload = async (e) => {
     const originalFile = e.target.files[0];
     if (!originalFile) return;
@@ -28,7 +34,18 @@ export default function InventoryScanner() {
 
       // 3. Send the SMALL file to AI
       const result = await analyzeShelfImage(compressedFile);
-      setScannedItems(result);
+
+      // Normalize result to match DB schema needs
+      const normalizedResult = result.map((item) => ({
+        name: item.name || "Unknown",
+        dosage: item.dosage || "",
+        type: item.type || "Tablet",
+        stock: item.estimated_stock || 0,
+        price: 0, // Default
+        expiry: "", // Default
+      }));
+
+      setScannedItems(normalizedResult);
     } catch (error) {
       console.error("Scan failed:", error);
       alert("Failed to scan. Try a smaller image.");
@@ -66,16 +83,19 @@ export default function InventoryScanner() {
         addDoc(inventoryRef, {
           pharmacyId: auth.currentUser.uid,
           name: item.name,
+          name_lower: item.name.trim().toLowerCase(),
           dosage: item.dosage,
-          quantity: item.estimated_stock,
+          stock: Number(item.stock),
+          price: Number(item.price),
+          expiry: item.expiry,
           type: item.type,
-          lastUpdated: new Date(),
+          updatedAt: new Date(),
         })
       );
 
       await Promise.all(promises);
       alert("Inventory Updated Successfully!");
-      navigate("/pharmacy-dashboard");
+      navigate("/pharmacy/inventory");
     } catch (error) {
       console.error("Save Error:", error);
       alert("Error saving data");
@@ -186,22 +206,82 @@ export default function InventoryScanner() {
             {scannedItems.map((item, index) => (
               <div
                 key={index}
-                className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center"
+                className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col gap-3"
               >
-                <div>
-                  <p className="font-bold text-gray-800">{item.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {item.dosage} • {item.type}
-                  </p>
+                <div className="flex justify-between items-start">
+                  <div className="w-full">
+                    <input
+                      value={item.name}
+                      onChange={(e) =>
+                        handleItemChange(index, "name", e.target.value)
+                      }
+                      className="font-bold text-gray-800 border-b border-dashed border-gray-300 focus:border-teal-500 outline-none w-full"
+                      placeholder="Medicine Name"
+                    />
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        value={item.dosage}
+                        onChange={(e) =>
+                          handleItemChange(index, "dosage", e.target.value)
+                        }
+                        placeholder="Dosage"
+                        className="text-xs text-gray-500 border rounded px-1 w-20"
+                      />
+                      <select
+                        value={item.type}
+                        onChange={(e) =>
+                          handleItemChange(index, "type", e.target.value)
+                        }
+                        className="text-xs text-gray-500 border rounded px-1"
+                      >
+                        <option>Tablet</option>
+                        <option>Syrup</option>
+                        <option>Injection</option>
+                        <option>Cream</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400">Qty:</span>
-                  <input
-                    type="number"
-                    defaultValue={item.estimated_stock}
-                    className="w-16 border rounded p-1 text-center"
-                    // Ideally, you'd update state here on change
-                  />
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-400 block">Qty</label>
+                    <input
+                      type="number"
+                      value={item.stock}
+                      onChange={(e) =>
+                        handleItemChange(index, "stock", e.target.value)
+                      }
+                      className="w-full border rounded p-1 text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block">
+                      Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={item.price}
+                      onChange={(e) =>
+                        handleItemChange(index, "price", e.target.value)
+                      }
+                      className="w-full border rounded p-1 text-center"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block">
+                      Expiry
+                    </label>
+                    <input
+                      type="date"
+                      value={item.expiry}
+                      onChange={(e) =>
+                        handleItemChange(index, "expiry", e.target.value)
+                      }
+                      className="w-full border rounded p-1 text-center text-xs"
+                    />
+                  </div>
                 </div>
               </div>
             ))}

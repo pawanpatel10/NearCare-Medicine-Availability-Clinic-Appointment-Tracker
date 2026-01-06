@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, googleProvider, actionCodeSettings } from "../firebaseConfig";
-import { signInWithEmailAndPassword, signInWithPopup, sendSignInLinkToEmail } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  sendSignInLinkToEmail,
+} from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import "./auth.css";
@@ -73,7 +77,6 @@ function Login() {
 
       // ✅ FIXED: Redirect using Firestore, NOT dropdown role
       await redirectUsingFirestore(user);
-
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");
@@ -92,14 +95,14 @@ function Login() {
 
     try {
       await sendSignInLinkToEmail(auth, form.email, actionCodeSettings);
-      
+
       // Save email to localStorage for later retrieval
       window.localStorage.setItem("emailForSignIn", form.email);
-      
+
       // Show success message
       setLinkSent(true);
       setForm({ ...form, email: "", password: "" });
-      
+
       // Auto-hide the success message after 5 seconds
       setTimeout(() => setLinkSent(false), 5000);
     } catch (err) {
@@ -125,26 +128,26 @@ function Login() {
               uid: user.uid,
               name: user.displayName,
               email: user.email,
-              role: "",
+              role: "user", // Default to user
               phone: "",
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
-              createdAt: new Date()
+              createdAt: new Date(),
             });
-            navigate("/complete-profile");
+            navigate("/home");
           },
           async () => {
             await setDoc(docRef, {
               uid: user.uid,
               name: user.displayName,
               email: user.email,
-              role: "",
+              role: "user", // Default to user
               phone: "",
               lat: 25.4358,
               lng: 81.8463,
-              createdAt: new Date()
+              createdAt: new Date(),
             });
-            navigate("/complete-profile");
+            navigate("/home");
           }
         );
       } else {
@@ -164,14 +167,14 @@ function Login() {
     const snap = await getDoc(docRef);
 
     if (!snap.exists()) {
-      navigate("/complete-profile");
+      navigate("/signup");
       return;
     }
 
     const data = snap.data();
 
-    if (!data.role || !data.phone) {
-      navigate("/complete-profile");
+    if (!data.role) {
+      navigate("/login");
     } else if (data.role === "clinic") {
       navigate("/doctor-dashboard");
     } else if (data.role === "pharmacy") {
@@ -189,17 +192,19 @@ function Login() {
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Login</h2>
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
-        
+
         {linkSent && (
-          <div style={{
-            backgroundColor: "#dcfce7",
-            color: "#166534",
-            padding: "10px",
-            borderRadius: "4px",
-            marginBottom: "10px",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
+          <div
+            style={{
+              backgroundColor: "#dcfce7",
+              color: "#166534",
+              padding: "10px",
+              borderRadius: "4px",
+              marginBottom: "10px",
+              fontSize: "14px",
+              fontWeight: "500",
+            }}
+          >
             ✅ Sign-in link sent to {form.email}! Check your email.
           </div>
         )}
@@ -234,7 +239,9 @@ function Login() {
           required
         />
 
-        <button type="submit" className="login-btn">Login</button>
+        <button type="submit" className="login-btn">
+          Login
+        </button>
 
         <div style={{ textAlign: "center", margin: "10px 0" }}>OR</div>
 
@@ -252,7 +259,7 @@ function Login() {
             cursor: "pointer",
             fontSize: "14px",
             fontWeight: "600",
-            marginBottom: "10px"
+            marginBottom: "10px",
           }}
         >
           📧 Sign in with Email Link

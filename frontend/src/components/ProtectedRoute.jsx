@@ -13,14 +13,12 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" replace />;
   }
 
-  // 🟡 User is authenticated but has no role (needs to complete profile)
-  // Only redirect if we're NOT already on complete-profile page
+  // 🟡 User is authenticated but has no role
   if (!userRole) {
-    if (location.pathname !== "/complete-profile") {
-      return <Navigate to="/complete-profile" replace />;
-    }
-    // Allow access to complete-profile page
-    return children;
+    // If we don't have a role, we can't really do anything.
+    // Redirect to login or show a "Contact Support" / "Error" state.
+    // For now, let's redirect to login to force a refresh/re-check.
+    return <Navigate to="/login" replace />;
   }
 
   // ✅ If no role restrictions specified, allow access
@@ -44,8 +42,8 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/home" replace />;
   }
 
-  // Fallback: unknown role, go to complete-profile
-  return <Navigate to="/complete-profile" replace />;
+  // Fallback: unknown role, go to login
+  return <Navigate to="/login" replace />;
 }
 
 // Component for public routes (login/signup) that redirect authenticated users
@@ -64,9 +62,9 @@ export function PublicRoute({ children }) {
     if (userRole === "user") return <Navigate to="/home" replace />;
   }
 
-  // If logged in but no role, redirect to complete profile
+  // If logged in but no role, redirect to login
   if (currentUser && !userRole) {
-    return <Navigate to="/complete-profile" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // ✅ Not logged in, allow access to public route
