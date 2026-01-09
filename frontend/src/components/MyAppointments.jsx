@@ -166,6 +166,12 @@ export default function MyAppointments() {
                         Token #{a.token}
                       </p>
 
+                      {a.createdAt && (
+                        <p className="text-sm text-slate-600">
+                          📅 {new Date(a.createdAt.seconds * 1000).toLocaleDateString()} at {new Date(a.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+
                       {etaText && (
                         <p className="text-sm text-blue-800 font-medium">
                           {etaText}

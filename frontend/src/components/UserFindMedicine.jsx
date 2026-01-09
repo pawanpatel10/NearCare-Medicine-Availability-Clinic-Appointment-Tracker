@@ -10,6 +10,7 @@ import {
 import { db } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import OSMMapView from "./OSMMapView";
+import Navbar from "./Navbar";
 
 const UserFindMedicine = () => {
   const navigate = useNavigate();
@@ -358,19 +359,28 @@ const UserFindMedicine = () => {
 
   if (locationError) {
     return (
-      <div className="p-4 max-w-4xl mx-auto">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <strong>Location Required:</strong> {locationError}
+      <>
+        <Navbar />
+        <div className="p-4 max-w-4xl mx-auto">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <strong>Location Required:</strong> {locationError}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  if (!userLocation)
-    return <p className="text-gray-600">Fetching location...</p>;
+  if (!userLocation) return (
+    <>
+      <Navbar />
+      <p className="text-gray-600 p-4">Fetching location...</p>
+    </>
+  );
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <>
+      <Navbar />
+      <div className="p-4 max-w-4xl mx-auto">
       {/* Search Type Selector */}
       <div className="mb-4">
         <div className="flex gap-4">
@@ -402,6 +412,11 @@ const UserFindMedicine = () => {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSearch();
+            }
+          }}
           placeholder={
             searchType === "medicine"
               ? "Search medicine (e.g. Oxitocin)"
@@ -551,7 +566,8 @@ const UserFindMedicine = () => {
           </ul>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
