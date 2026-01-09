@@ -1,15 +1,21 @@
 /* ===============================
-   NAVBAR BASE
+   🎨 MODERN NAVBAR - GLASS MORPHISM
 ================================ */
 .navbar {
-  background: linear-gradient(to right, #d4e3ff, #eaf1ff);
-  height: 64px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  height: 72px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #c3d6f3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   position: sticky;
   top: 0;
   z-index: 50;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  animation: fadeInDown 0.5s ease-out;
 }
 
 /* ===============================
@@ -17,27 +23,44 @@
 ================================ */
 .navbar-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 18px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 /* ===============================
-   LOGO
+   LOGO - GRADIENT TEXT
 ================================ */
 .navbar-logo {
-  font-size: 1.45rem;
-  font-weight: 700;
-  color: #163b6b;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1a6ef5, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-decoration: none;
-  letter-spacing: 0.3px;
+  letter-spacing: -0.5px;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-.navbar-logo:hover {
-  color: #1e40af;
+.navbar-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1a6ef5, #10b981);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.navbar-logo:hover::after {
+  width: 100%;
 }
 
 /* ===============================
@@ -47,64 +70,128 @@
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   margin: 0;
   padding: 0;
 }
 
 /* ===============================
-   LINKS
+   LINKS - MODERN HOVER
 ================================ */
 .nav-links {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #334155;
   text-decoration: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  transition: background 0.2s ease, color 0.2s ease;
+  padding: 10px 18px;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-links::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(26, 110, 245, 0.1), rgba(16, 185, 129, 0.1));
+  border-radius: 12px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
 }
 
 .nav-links:hover {
-  background: #cfe0ff;
-  color: #1e40af;
+  color: #1a6ef5;
+  transform: translateY(-2px);
+}
+
+.nav-links:hover::before {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ===============================
-   MOBILE SIGNUP LINK (if used)
+   SIGNUP BUTTON - GRADIENT
 ================================ */
 .nav-links-mobile {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: #ffffff;
-  background: #2563eb;
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #1a6ef5, #10b981);
+  padding: 10px 20px;
+  border-radius: 12px;
   text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(26, 110, 245, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-links-mobile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
 }
 
 .nav-links-mobile:hover {
-  background: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26, 110, 245, 0.4);
+}
+
+.nav-links-mobile:hover::before {
+  left: 100%;
 }
 
 /* ===============================
-   LOGOUT BUTTON
+   LOGOUT BUTTON - MODERN
 ================================ */
 .logout-btn-nav {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  background: #fdecec;
-  color: #991b1b;
-  border: 1px solid #f3b4b4;
-  padding: 8px 14px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.logout-btn-nav::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #fecaca, #fca5a5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .logout-btn-nav:hover {
-  background: #fbdada;
-  transform: scale(1.02);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.logout-btn-nav:hover::before {
+  opacity: 1;
+}
+
+.logout-btn-nav span {
+  position: relative;
+  z-index: 1;
 }
 
 /* ===============================
@@ -112,6 +199,38 @@
 ================================ */
 .nav-links:focus,
 .logout-btn-nav:focus {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #1a6ef5;
   outline-offset: 2px;
+}
+
+/* ===============================
+   MOBILE RESPONSIVE
+================================ */
+@media (max-width: 768px) {
+  .navbar {
+    height: 64px;
+  }
+  
+  .navbar-container {
+    padding: 0 16px;
+  }
+  
+  .navbar-logo {
+    font-size: 1.4rem;
+  }
+  
+  .nav-links {
+    padding: 8px 12px;
+    font-size: 0.875rem;
+  }
+  
+  .nav-links-mobile {
+    padding: 8px 14px;
+    font-size: 0.875rem;
+  }
+  
+  .logout-btn-nav {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
 }

@@ -240,108 +240,227 @@ function RoleSelection() {
 
   return (
     <div className="auth-container">
-      <form className="auth-card" onSubmit={handleSubmit}>
+      <form className="auth-card role-selection-form" onSubmit={handleSubmit}>
         <h2>Complete Your Profile</h2>
-        <p style={{ color: "#666", fontSize: "14px", marginBottom: "20px" }}>
-          Please select your role and provide additional details
+        <p className="auth-subtitle">
+          Select your role and provide additional details to get started
         </p>
 
-        {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
+        {error && (
+          <div className="error-message">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {error}
+          </div>
+        )}
 
-        {/* Role Selection */}
-        <label>I am a... *</label>
-        <select
-          name="role"
-          value={form.role}
-          onChange={(e) => {
-            handleChange(e);
-            setLocationStatus("");
-            setLocationMethod("address");
-            setForm((prev) => ({ ...prev, lat: null, lng: null }));
-          }}
-          required
-          style={{ marginBottom: "15px" }}
-        >
-          <option value="">-- Select your role --</option>
-          <option value="user">Patient / User</option>
-          <option value="clinic">Doctor / Clinic</option>
-          <option value="pharmacy">Pharmacy Owner</option>
-        </select>
+        {/* Role Selection Cards */}
+        <label className="section-label">I am a...</label>
+        <div className="role-cards">
+          <div
+            className={`role-card ${form.role === "user" ? "selected" : ""}`}
+            onClick={() => {
+              setForm((prev) => ({
+                ...prev,
+                role: "user",
+                lat: null,
+                lng: null,
+              }));
+              setLocationStatus("");
+              setLocationMethod("address");
+            }}
+          >
+            <div className="role-icon">👤</div>
+            <div className="role-name">Patient</div>
+            <div className="role-desc">Find medicines & book appointments</div>
+          </div>
+
+          <div
+            className={`role-card ${form.role === "clinic" ? "selected" : ""}`}
+            onClick={() => {
+              setForm((prev) => ({
+                ...prev,
+                role: "clinic",
+                lat: null,
+                lng: null,
+              }));
+              setLocationStatus("");
+            }}
+          >
+            <div className="role-icon">🏥</div>
+            <div className="role-name">Doctor</div>
+            <div className="role-desc">Manage your clinic & patients</div>
+          </div>
+
+          <div
+            className={`role-card ${
+              form.role === "pharmacy" ? "selected" : ""
+            }`}
+            onClick={() => {
+              setForm((prev) => ({
+                ...prev,
+                role: "pharmacy",
+                lat: null,
+                lng: null,
+              }));
+              setLocationStatus("");
+              setLocationMethod("address");
+            }}
+          >
+            <div className="role-icon">💊</div>
+            <div className="role-name">Pharmacy</div>
+            <div className="role-desc">List your medicines & inventory</div>
+          </div>
+        </div>
 
         {/* Common Fields */}
-        <label>
-          {form.role === "pharmacy" ? "Pharmacy Name *" : "Full Name *"}
-        </label>
-        <input
-          type="text"
-          name="name"
-          placeholder={
-            form.role === "pharmacy"
-              ? "Enter pharmacy name"
-              : "Enter your full name"
-          }
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
+        <div className="form-group">
+          <label>
+            <svg
+              className="inline w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            {form.role === "pharmacy" ? "Pharmacy Name" : "Full Name"} *
+          </label>
+          <input
+            type="text"
+            name="name"
+            placeholder={
+              form.role === "pharmacy"
+                ? "Enter pharmacy name"
+                : "Enter your full name"
+            }
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-        <label>Phone Number *</label>
-        <input
-          type="tel"
-          name="phone"
-          placeholder="Enter phone number"
-          value={form.phone}
-          onChange={handleChange}
-          required
-        />
+        <div className="form-group">
+          <label>
+            <svg
+              className="inline w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+              />
+            </svg>
+            Phone Number *
+          </label>
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Enter phone number"
+            value={form.phone}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
         {/* Clinic-specific Fields */}
         {form.role === "clinic" && (
           <>
-            <label>Clinic Name *</label>
-            <input
-              type="text"
-              name="clinicName"
-              placeholder="Enter clinic name"
-              value={form.clinicName}
-              onChange={handleChange}
-              required
-            />
+            <div className="form-group">
+              <label>
+                <svg
+                  className="inline w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
+                Clinic Name *
+              </label>
+              <input
+                type="text"
+                name="clinicName"
+                placeholder="Enter clinic name"
+                value={form.clinicName}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-            <label>Specialization</label>
-            <input
-              type="text"
-              name="specialization"
-              placeholder="e.g., General Physician, Dentist, etc."
-              value={form.specialization}
-              onChange={handleChange}
-            />
+            <div className="form-group">
+              <label>
+                <svg
+                  className="inline w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                Specialization
+              </label>
+              <input
+                type="text"
+                name="specialization"
+                placeholder="e.g., General Physician, Dentist, etc."
+                value={form.specialization}
+                onChange={handleChange}
+              />
+            </div>
 
-            <div
-              style={{
-                padding: "10px",
-                backgroundColor: "#e0f2fe",
-                borderRadius: "8px",
-                marginBottom: "15px",
-              }}
-            >
-              <p style={{ fontSize: "13px", color: "#0369a1", margin: 0 }}>
+            <div className="location-info-box">
+              <div className="location-status">
                 📍 {locationStatus || "Getting your clinic location..."}
-              </p>
+              </div>
               <button
                 type="button"
                 onClick={getLocation}
-                style={{
-                  marginTop: "8px",
-                  background: "transparent",
-                  border: "none",
-                  color: "#0284c7",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  fontSize: "13px",
-                  padding: 0,
-                }}
+                className="refresh-location-btn"
               >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
                 Refresh location
               </button>
             </div>
@@ -351,116 +470,107 @@ function RoleSelection() {
         {/* Pharmacy-specific Fields */}
         {form.role === "pharmacy" && (
           <>
-            <label>Pharmacy Address *</label>
-            <input
-              type="text"
-              name="address"
-              placeholder="Enter full address (e.g., 123 Main St, City, State)"
-              value={form.address}
-              onChange={handleChange}
-              required
-            />
+            <div className="form-group">
+              <label>
+                <svg
+                  className="inline w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                Pharmacy Address *
+              </label>
+              <input
+                type="text"
+                name="address"
+                placeholder="Enter full address (e.g., 123 Main St, City, State)"
+                value={form.address}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
             {/* Location Method Toggle */}
-            <div
-              style={{
-                padding: "12px",
-                backgroundColor: "#e0f2fe",
-                borderRadius: "8px",
-                marginBottom: "15px",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  color: "#334155",
-                  marginBottom: "8px",
-                }}
-              >
+            <div className="location-method-box">
+              <p className="location-method-label">
                 How should we get your location?
               </p>
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div className="location-method-buttons">
                 <button
                   type="button"
                   onClick={() => setLocationMethod("address")}
-                  style={{
-                    flex: 1,
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border:
-                      locationMethod === "address"
-                        ? "none"
-                        : "1px solid #cbd5e1",
-                    background:
-                      locationMethod === "address" ? "#0d9488" : "white",
-                    color: locationMethod === "address" ? "white" : "#334155",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: "500",
-                  }}
+                  className={`location-method-btn ${
+                    locationMethod === "address" ? "active" : ""
+                  }`}
                 >
                   📍 From Address
                 </button>
                 <button
                   type="button"
                   onClick={() => setLocationMethod("gps")}
-                  style={{
-                    flex: 1,
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border:
-                      locationMethod === "gps" ? "none" : "1px solid #cbd5e1",
-                    background: locationMethod === "gps" ? "#0d9488" : "white",
-                    color: locationMethod === "gps" ? "white" : "#334155",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: "500",
-                  }}
+                  className={`location-method-btn ${
+                    locationMethod === "gps" ? "active" : ""
+                  }`}
                 >
                   🛰️ Use GPS
                 </button>
               </div>
-
-              {locationMethod === "address" && (
-                <p
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "12px",
-                    color: "#64748b",
-                  }}
-                >
-                  We'll convert your address to coordinates automatically.
-                </p>
-              )}
-
-              {locationMethod === "gps" && (
-                <p
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "12px",
-                    color: "#64748b",
-                  }}
-                >
-                  {locationStatus ||
+              <p className="location-method-hint">
+                {locationMethod === "address"
+                  ? "We'll convert your address to coordinates automatically."
+                  : locationStatus ||
                     "Click 'Use GPS' to get your current location"}
-                </p>
-              )}
+              </p>
             </div>
           </>
         )}
 
         <button
           type="submit"
-          className="login-btn"
-          disabled={isLoading || geocoding}
-          style={{ marginTop: "15px" }}
+          className="btn-primary"
+          disabled={isLoading || geocoding || !form.role}
         >
-          {isLoading
-            ? "Saving..."
-            : geocoding
-            ? "Finding location..."
-            : "Complete Setup"}
+          {isLoading ? (
+            <>
+              <span className="auth-spinner"></span>
+              Saving...
+            </>
+          ) : geocoding ? (
+            <>
+              <span className="auth-spinner"></span>
+              Finding location...
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Complete Setup
+            </>
+          )}
         </button>
       </form>
     </div>

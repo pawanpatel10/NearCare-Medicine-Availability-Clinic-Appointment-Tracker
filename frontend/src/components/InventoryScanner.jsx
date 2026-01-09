@@ -138,13 +138,29 @@ export default function InventoryScanner() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        📸 AI Stock Scanner
-      </h2>
+    <div className="min-h-screen bg-mesh p-6">
+      {/* Header */}
+      <div className="max-w-2xl mx-auto mb-8 animate-fade-in-up">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-lg">
+            <span className="text-2xl">📸</span>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              AI Stock Scanner
+            </h2>
+            <p className="text-slate-500 text-sm">
+              Snap a photo to auto-detect medicines
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* 1. Camera Input */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-300 text-center">
+      <div
+        className="max-w-2xl mx-auto glass-card p-8 rounded-2xl text-center animate-fade-in-up"
+        style={{ animationDelay: "0.1s" }}
+      >
         <input
           type="file"
           accept="image/*"
@@ -155,11 +171,15 @@ export default function InventoryScanner() {
         />
         <label
           htmlFor="cameraInput"
-          className="cursor-pointer flex flex-col items-center gap-2"
+          className="cursor-pointer flex flex-col items-center gap-3 group"
         >
-          <div className="bg-teal-50 p-4 rounded-full text-4xl">📷</div>
-          <span className="text-teal-700 font-semibold">Tap to Snap Photo</span>
-          <span className="text-xs text-gray-400">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-4xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+            📷
+          </div>
+          <span className="text-lg font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+            Tap to Snap Photo
+          </span>
+          <span className="text-sm text-slate-400">
             Takes a photo of your medicine strip or shelf
           </span>
         </label>
@@ -167,30 +187,37 @@ export default function InventoryScanner() {
 
       {/* 2. Image Preview */}
       {previewUrl && (
-        <div className="mt-6 flex justify-center">
-          <img
-            src={previewUrl}
-            alt="Preview"
-            className="h-48 rounded-lg shadow-md object-cover"
-          />
+        <div className="max-w-2xl mx-auto mt-6 flex justify-center animate-fade-in-up">
+          <div className="glass-card p-3 rounded-2xl">
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="h-48 rounded-xl shadow-md object-cover"
+            />
+          </div>
         </div>
       )}
 
       {/* 3. Loading State */}
       {loading && (
-        <div className="mt-8 text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mx-auto mb-2"></div>
-          <p className="text-gray-600 animate-pulse">
-            AI is reading the labels...
-          </p>
+        <div className="max-w-2xl mx-auto mt-8 text-center animate-fade-in-up">
+          <div className="glass-card rounded-2xl p-6 inline-block">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full border-4 border-teal-500 border-t-transparent animate-spin"></div>
+            <p className="text-slate-600 font-medium animate-pulse">
+              AI is reading the labels...
+            </p>
+          </div>
         </div>
       )}
 
       {/* NEW: Handle "No Items" Case */}
       {!loading && previewUrl && scannedItems.length === 0 && (
-        <div className="mt-8 p-4 bg-yellow-50 text-yellow-700 rounded-lg text-center border border-yellow-200">
-          <p className="font-bold">⚠️ No medicines detected</p>
-          <p className="text-sm">
+        <div className="max-w-2xl mx-auto mt-8 p-5 glass-card rounded-2xl text-center border-2 border-amber-200 animate-fade-in-up">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-100 flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <p className="font-bold text-amber-700">No medicines detected</p>
+          <p className="text-sm text-slate-500 mt-1">
             Try moving closer or ensuring better lighting.
           </p>
         </div>
@@ -198,15 +225,22 @@ export default function InventoryScanner() {
 
       {/* 4. Results List (Editable) */}
       {scannedItems.length > 0 && (
-        <div className="mt-8">
-          <h3 className="font-bold text-gray-700 mb-4">
+        <div
+          className="max-w-2xl mx-auto mt-8 animate-fade-in-up"
+          style={{ animationDelay: "0.2s" }}
+        >
+          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-sm">
+              ✓
+            </span>
             We found these medicines:
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {scannedItems.map((item, index) => (
               <div
                 key={index}
-                className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col gap-3"
+                className="glass-card p-5 rounded-2xl border border-slate-100 flex flex-col gap-4 animate-fade-in-up"
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
                 <div className="flex justify-between items-start">
                   <div className="w-full">
@@ -215,24 +249,24 @@ export default function InventoryScanner() {
                       onChange={(e) =>
                         handleItemChange(index, "name", e.target.value)
                       }
-                      className="font-bold text-gray-800 border-b border-dashed border-gray-300 focus:border-teal-500 outline-none w-full"
+                      className="font-bold text-slate-800 text-lg bg-transparent border-b-2 border-dashed border-slate-200 focus:border-teal-500 outline-none w-full py-1 transition-colors"
                       placeholder="Medicine Name"
                     />
-                    <div className="flex gap-2 mt-1">
+                    <div className="flex gap-3 mt-3">
                       <input
                         value={item.dosage}
                         onChange={(e) =>
                           handleItemChange(index, "dosage", e.target.value)
                         }
                         placeholder="Dosage"
-                        className="text-xs text-gray-500 border rounded px-1 w-20"
+                        className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-24 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all"
                       />
                       <select
                         value={item.type}
                         onChange={(e) =>
                           handleItemChange(index, "type", e.target.value)
                         }
-                        className="text-xs text-gray-500 border rounded px-1"
+                        className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all"
                       >
                         <option>Tablet</option>
                         <option>Syrup</option>
@@ -243,20 +277,22 @@ export default function InventoryScanner() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="text-xs text-gray-400 block">Qty</label>
+                    <label className="text-xs text-slate-400 block mb-1 font-medium">
+                      Quantity
+                    </label>
                     <input
                       type="number"
                       value={item.stock}
                       onChange={(e) =>
                         handleItemChange(index, "stock", e.target.value)
                       }
-                      className="w-full border rounded p-1 text-center"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 block">
+                    <label className="text-xs text-slate-400 block mb-1 font-medium">
                       Price (₹)
                     </label>
                     <input
@@ -265,12 +301,12 @@ export default function InventoryScanner() {
                       onChange={(e) =>
                         handleItemChange(index, "price", e.target.value)
                       }
-                      className="w-full border rounded p-1 text-center"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all"
                       placeholder="0"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 block">
+                    <label className="text-xs text-slate-400 block mb-1 font-medium">
                       Expiry
                     </label>
                     <input
@@ -279,7 +315,7 @@ export default function InventoryScanner() {
                       onChange={(e) =>
                         handleItemChange(index, "expiry", e.target.value)
                       }
-                      className="w-full border rounded p-1 text-center text-xs"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center text-sm focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -289,9 +325,9 @@ export default function InventoryScanner() {
 
           <button
             onClick={saveToInventory}
-            className="w-full mt-6 bg-teal-600 text-white py-3 rounded-xl font-bold hover:bg-teal-700 transition"
+            className="w-full mt-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 shadow-lg"
           >
-            Confirm & Add to Inventory
+            ✓ Confirm & Add to Inventory
           </button>
         </div>
       )}

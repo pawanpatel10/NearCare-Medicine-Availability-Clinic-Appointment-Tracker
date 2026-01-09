@@ -233,92 +233,207 @@ function Signup() {
     <div className="auth-container">
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Create Account</h2>
-        {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
+        <p className="auth-subtitle">
+          Join NearCare and access healthcare services
+        </p>
 
-        <label>Full Name</label>
-        <input
-          type="text"
-          name="name"
-          placeholder="Enter full name"
-          onChange={handleChange}
-          required
-        />
+        {error && (
+          <div className="error-message">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {error}
+          </div>
+        )}
 
-        <label>Email</label>
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter email"
-          onChange={handleChange}
-          required
-        />
+        {linkSent && (
+          <div className="success-message">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Signup link sent! Check your email to complete registration.
+          </div>
+        )}
 
-        <label>Password</label>
-        <input
-          type="password"
-          name="password"
-          placeholder="Create password"
-          onChange={handleChange}
-          required
-        />
+        <div className="form-group">
+          <label>
+            <svg
+              className="inline w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            Full Name
+          </label>
+          <input
+            type="text"
+            name="name"
+            placeholder="Enter your full name"
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-        <label>Confirm Password</label>
-        <input
-          type="password"
-          name="confirmPassword"
-          placeholder="Confirm password"
-          onChange={handleChange}
-          required
-        />
+        <div className="form-group">
+          <label>
+            <svg
+              className="inline w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+            Email Address
+          </label>
+          <input
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Sign Up"}
+        <div className="form-group">
+          <label>
+            <svg
+              className="inline w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            Password
+          </label>
+          <input
+            type="password"
+            name="password"
+            placeholder="Create a strong password"
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label>
+            <svg
+              className="inline w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+            Confirm Password
+          </label>
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm your password"
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <button type="submit" className="btn-primary" disabled={loading}>
+          {loading ? (
+            <>
+              <span className="auth-spinner"></span>
+              Creating Account...
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+              Create Account
+            </>
+          )}
         </button>
 
-        <div style={{ textAlign: "center", margin: "10px 0" }}>OR</div>
+        <div className="divider">
+          <span>or sign up with</span>
+        </div>
 
         <button
           type="button"
           onClick={handleEmailLinkSignUp}
+          className="btn-secondary"
           disabled={loading}
-          style={{
-            background: "#3b82f6",
-            color: "white",
-            width: "100%",
-            padding: "10px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: loading ? "not-allowed" : "pointer",
-            fontSize: "14px",
-            fontWeight: "600",
-            marginBottom: "10px",
-          }}
+          style={{ width: "100%" }}
         >
-          {loading ? "Sending..." : "📧 Sign Up with Email Link"}
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+          {loading ? "Sending..." : "Sign Up with Email Link"}
         </button>
 
-        {linkSent && (
-          <div
-            style={{
-              backgroundColor: "#dcfce7",
-              color: "#166534",
-              padding: "10px",
-              borderRadius: "4px",
-              marginBottom: "10px",
-              fontSize: "14px",
-              fontWeight: "500",
-            }}
-          >
-            ✅ Signup link sent! Check your email to complete registration.
-          </div>
-        )}
-
-        <p
-          className="link"
-          onClick={() => navigate("/login")}
-          style={{ cursor: "pointer" }}
-        >
-          Already have an account? Login
+        <p className="link" onClick={() => navigate("/login")}>
+          Already have an account? <span>Sign in</span>
         </p>
       </form>
     </div>
