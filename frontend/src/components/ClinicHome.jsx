@@ -19,6 +19,7 @@ export default function ClinicHome() {
   const [currentToken, setCurrentToken] = useState(0);
   const [waitingCount, setWaitingCount] = useState(0);
   const [hasServing, setHasServing] = useState(false);
+  const [bookingsOpen, setBookingsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
   // 🔹 Fetch clinic + queue status
@@ -37,13 +38,15 @@ export default function ClinicHome() {
           setDoctorName(userDoc.data().name);
         }
 
-        // Clinic current token
+        // Clinic data
         const clinicDoc = await getDoc(doc(db, "clinics", user.uid));
         if (clinicDoc.exists()) {
-          setCurrentToken(clinicDoc.data().currentToken || 0);
+          const data = clinicDoc.data();
+          setCurrentToken(data.currentToken || 0);
+          setBookingsOpen(data.bookingsOpen !== false); // default true
         }
 
-        // 🔹 Check if someone is being served
+        // Check serving
         const servingQ = query(
           collection(db, "appointments"),
           where("clinicId", "==", user.uid),
@@ -52,7 +55,7 @@ export default function ClinicHome() {
         const servingSnap = await getDocs(servingQ);
         setHasServing(!servingSnap.empty);
 
-        // 🔹 Count ONLY waiting patients (ignore cancelled/completed)
+        // Count waiting
         const waitingQ = query(
           collection(db, "appointments"),
           where("clinicId", "==", user.uid),
@@ -96,12 +99,10 @@ export default function ClinicHome() {
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => a.token - b.token)[0];
 
-    // Mark as serving
     await updateDoc(doc(db, "appointments", next.id), {
       status: "serving"
     });
 
-    // Update clinic current token
     await updateDoc(doc(db, "clinics", clinicId), {
       currentToken: next.token
     });
@@ -132,6 +133,18 @@ export default function ClinicHome() {
     });
 
     setHasServing(false);
+  };
+
+  // 🛑 TOGGLE BOOKINGS
+  const toggleBookings = async () => {
+    const clinicId = auth.currentUser.uid;
+    const nextState = !bookingsOpen;
+
+    await updateDoc(doc(db, "clinics", clinicId), {
+      bookingsOpen: nextState
+    });
+
+    setBookingsOpen(nextState);
   };
 
   if (loading) {
@@ -208,6 +221,20 @@ export default function ClinicHome() {
                 }`}
               >
                 ✔ Mark Completed
+              </button>
+
+              {/* 🛑 BOOKINGS TOGGLE */}
+              <button
+                onClick={toggleBookings}
+                className={`py-3 rounded-xl font-semibold transition-all ${
+                  bookingsOpen
+                    ? "bg-red-100 text-red-700 hover:bg-red-200"
+                    : "bg-green-100 text-green-700 hover:bg-green-200"
+                }`}
+              >
+                {bookingsOpen
+                  ? "⛔ Pause New Bookings"
+                  : "▶ Resume Bookings"}
               </button>
             </div>
           </div>

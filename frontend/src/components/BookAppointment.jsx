@@ -20,7 +20,7 @@ export default function BookAppointment() {
   const [locationError, setLocationError] = useState(null);
   const [search, setSearch] = useState("");
 
-  // 🔥 Waiting count per clinic (STATUS BASED)
+  // 🔥 waiting count per clinic (ONLY waiting)
   const [waitingMap, setWaitingMap] = useState({});
   
   // 🔥 Cache distance calculations
@@ -103,7 +103,7 @@ export default function BookAppointment() {
       setLoading(false);
     });
 
-    // 🔥 Separate waiting count listener (won't re-fetch clinics)
+    // 🔥 WAITING appointments only
     const waitingQ = query(
       collection(db, "appointments"),
       where("status", "==", "waiting")
@@ -168,19 +168,42 @@ export default function BookAppointment() {
                 );
               })
               .map((clinic) => {
-                const isClosed = !clinic.openTime || !clinic.closeTime;
-
-                // ✅ FIXED WAITING COUNT
                 const waitingCount = waitingMap[clinic.id] || 0;
                 const avgTime = clinic.avgTimePerPatient || 10;
 
+                const now = new Date();
+                const [openH, openM] = clinic.openTime.split(":").map(Number);
+                const [closeH, closeM] = clinic.closeTime.split(":").map(Number);
+
+                const openingTime = new Date(now);
+                openingTime.setHours(openH, openM, 0, 0);
+
+                const closingTime = new Date(now);
+                closingTime.setHours(closeH, closeM, 0, 0);
+
+                const effectiveStart = now < openingTime ? openingTime : now;
+
+                const estimatedServiceTime = new Date(
+                  effectiveStart.getTime() +
+                    waitingCount * avgTime * 60000
+                );
+
+                const outOfTimeRange = estimatedServiceTime > closingTime;
+                const bookingsPaused = clinic.bookingsOpen === false;
+
                 const estimatedWait =
                   waitingCount === 0
-                    ? "No wait"
+                    ? now < openingTime
+                      ? `Opens at ${clinic.openTime}`
+                      : "No wait"
                     : `~${waitingCount * avgTime} mins`;
 
                 const waitBadge =
-                  waitingCount === 0
+                  bookingsPaused
+                    ? "bg-gray-200 text-gray-700"
+                    : outOfTimeRange
+                    ? "bg-red-200 text-red-800"
+                    : waitingCount === 0
                     ? "bg-emerald-200 text-emerald-800"
                     : waitingCount <= 4
                     ? "bg-yellow-200 text-yellow-900"
@@ -225,24 +248,39 @@ export default function BookAppointment() {
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-bold ${waitBadge}`}
                             >
-                              ⏳ {estimatedWait}
+                              ⏳ {bookingsPaused ? "Bookings paused" : estimatedWait}
                             </span>
                           </div>
+
+                          {outOfTimeRange && !bookingsPaused && (
+                            <p className="text-xs text-red-700 mt-1 font-medium">
+                              ⚠️ No slots available today
+                            </p>
+                          )}
+
+                          {bookingsPaused && (
+                            <p className="text-xs text-gray-600 mt-1 font-medium">
+                              🚫 Bookings paused by clinic
+                            </p>
+                          )}
                         </div>
 
                         <button
-                          disabled={isClosed}
+                          disabled={outOfTimeRange || bookingsPaused}
                           onClick={() =>
                             navigate(`/book-appointment/${clinic.id}`)
                           }
-                          className={`px-4 py-2 rounded-xl text-sm font-bold
-                            transition ${
-                              isClosed
-                                ? "bg-slate-400 text-slate-600 cursor-not-allowed"
-                                : "bg-gradient-to-r from-teal-700 to-emerald-700 text-white hover:scale-[1.05] shadow-lg"
-                            }`}
+                          className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
+                            outOfTimeRange || bookingsPaused
+                              ? "bg-slate-400 text-slate-600 cursor-not-allowed"
+                              : "bg-gradient-to-r from-teal-700 to-emerald-700 text-white hover:scale-[1.05] shadow-lg"
+                          }`}
                         >
-                          {isClosed ? "Closed" : "Select"}
+                          {bookingsPaused
+                            ? "Paused"
+                            : outOfTimeRange
+                            ? "Full"
+                            : "Select"}
                         </button>
                       </div>
                     </div>
