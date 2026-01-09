@@ -1,1 +1,526 @@
 @import "tailwindcss";
+
+/* ================================
+   🎨 NEARCARE MODERN THEME
+   ================================ */
+
+:root {
+  /* Primary Colors - Deep Blue & Teal Gradient */
+  --primary-50: #eef7ff;
+  --primary-100: #d9edff;
+  --primary-200: #bce0ff;
+  --primary-300: #8eceff;
+  --primary-400: #59b2ff;
+  --primary-500: #3391ff;
+  --primary-600: #1a6ef5;
+  --primary-700: #1458e1;
+  --primary-800: #1648b6;
+  --primary-900: #183f8f;
+
+  /* Accent - Emerald */
+  --accent-50: #ecfdf5;
+  --accent-100: #d1fae5;
+  --accent-200: #a7f3d0;
+  --accent-300: #6ee7b7;
+  --accent-400: #34d399;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-800: #065f46;
+  --accent-900: #064e3b;
+
+  /* Glass Effect Colors */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Dark Theme Support */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+}
+
+/* ================================
+   ✨ GLOBAL ANIMATIONS
+   ================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ================================
+   🎯 UTILITY CLASSES
+   ================================ */
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Staggered Animation Delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+
+/* ================================
+   🌟 GLASS MORPHISM
+   ================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ================================
+   🔘 MODERN BUTTONS
+   ================================ */
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(26, 110, 245, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26, 110, 245, 0.45);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ================================
+   📦 CARD STYLES
+   ================================ */
+
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-3d {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.card-3d:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-8px);
+}
+
+/* ================================
+   🎭 GRADIENT BACKGROUNDS
+   ================================ */
+
+.bg-mesh {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 40% 20%, hsla(212, 100%, 74%, 0.3) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(162, 100%, 74%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(212, 100%, 74%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsla(162, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(212, 100%, 74%, 0.2) 0px, transparent 50%);
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(135deg, 
+    #1a6ef5 0%, 
+    #1458e1 25%, 
+    #059669 75%, 
+    #10b981 100%
+  );
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.bg-gradient-cool {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-warm {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.bg-gradient-ocean {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.bg-gradient-sunset {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* ================================
+   📝 FORM ELEMENTS
+   ================================ */
+
+.input-modern {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.input-modern:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 4px rgba(26, 110, 245, 0.1);
+}
+
+.input-modern:hover:not(:focus) {
+  border-color: #cbd5e1;
+}
+
+/* ================================
+   🔔 STATUS INDICATORS
+   ================================ */
+
+.status-online {
+  position: relative;
+}
+
+.status-online::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border-radius: 50%;
+  border: 2px solid white;
+  animation: pulse-glow 2s infinite;
+}
+
+/* ================================
+   📱 MODERN SCROLLBAR
+   ================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #94a3b8, #64748b);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #64748b, #475569);
+}
+
+/* ================================
+   🎪 LOADING STATES
+   ================================ */
+
+.loading-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--primary-500);
+  border-radius: 50%;
+  animation: bounce-subtle 1.4s infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ================================
+   🎯 FOCUS STYLES
+   ================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* ================================
+   📐 TRANSITIONS
+   ================================ */
+
+.transition-all-smooth {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-transform-smooth {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ================================
+   🌈 TEXT GRADIENTS
+   ================================ */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-600), var(--accent-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-cool {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+

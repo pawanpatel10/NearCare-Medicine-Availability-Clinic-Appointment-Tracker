@@ -359,215 +359,413 @@ const UserFindMedicine = () => {
 
   if (locationError) {
     return (
-      <>
+      <div className="min-h-screen bg-mesh">
         <Navbar />
-        <div className="p-4 max-w-4xl mx-auto">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            <strong>Location Required:</strong> {locationError}
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="glass-card rounded-2xl p-6 border-l-4 border-red-500 animate-fade-in-up">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800">Location Required</h3>
+                <p className="text-slate-600 text-sm">{locationError}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
-  if (!userLocation) return (
-    <>
-      <Navbar />
-      <p className="text-gray-600 p-4">Fetching location...</p>
-    </>
-  );
+  if (!userLocation)
+    return (
+      <div className="min-h-screen bg-mesh">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="mt-4 text-slate-600 font-medium">
+            Fetching your location...
+          </p>
+        </div>
+      </div>
+    );
 
   return (
-    <>
+    <div className="min-h-screen bg-mesh">
       <Navbar />
-      <div className="p-4 max-w-4xl mx-auto">
-      {/* Search Type Selector */}
-      <div className="mb-4">
-        <div className="flex gap-4">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="medicine"
-              checked={searchType === "medicine"}
-              onChange={(e) => setSearchType(e.target.value)}
-              className="mr-2"
-            />
-            <span className="font-medium">Search Medicine</span>
-          </label>
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="clinic"
-              checked={searchType === "clinic"}
-              onChange={(e) => setSearchType(e.target.value)}
-              className="mr-2"
-            />
-            <span className="font-medium">Search Clinic</span>
-          </label>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Hero Header */}
+        <div className="relative mb-6 animate-fade-in-up">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-teal-600/10 rounded-3xl blur-xl"></div>
+          <div className="relative glass-card rounded-3xl p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center shadow-lg">
+                <span className="text-2xl">🔍</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Find Healthcare
+                </h1>
+                <p className="text-slate-500 text-sm">
+                  Search for medicines and nearby clinics
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* 🔍 Search Box */}
-      <div className="flex mb-4">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleSearch();
-            }
-          }}
-          placeholder={
-            searchType === "medicine"
-              ? "Search medicine (e.g. Oxitocin)"
-              : "Search by doctor or clinic name (leave empty to show all clinics nearby)"
-          }
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-r-md hover:bg-blue-600 transition-colors"
+        {/* Search Type Toggle */}
+        <div
+          className="mb-6 animate-fade-in-up"
+          style={{ animationDelay: "0.05s" }}
         >
-          Search
-        </button>
-      </div>
-
-      {loading && (
-        <p className="text-gray-600 mb-2">Finding nearby pharmacies...</p>
-      )}
-
-      {/* Not Found Message */}
-      {notFound && !loading && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-          <strong>
-            {searchType === "medicine"
-              ? "Medicine Not Available:"
-              : "No Clinics Found:"}
-          </strong>
-          {searchType === "medicine"
-            ? ` No pharmacies found with "${search.trim()}" in stock nearby.`
-            : ` No clinics found matching "${search.trim()}".`}
+          <div className="glass-card rounded-2xl p-4 flex gap-3">
+            <button
+              onClick={() => setSearchType("medicine")}
+              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                searchType === "medicine"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <span>💊</span> Search Medicine
+            </button>
+            <button
+              onClick={() => setSearchType("clinic")}
+              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                searchType === "clinic"
+                  ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-lg"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <span>🏥</span> Search Clinic
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* 🗺 Map */}
-      <div className="h-96 border border-gray-300 rounded-lg overflow-hidden mb-4">
-        <OSMMapView
-          userLocation={userLocation}
-          pharmacies={places}
-          accuracy={accuracy}
-          selectedPlace={selectedPlace}
-        />
-      </div>
-
-      {/* 📋 List */}
-      {places.length > 0 && (
-        <div className="border-t border-gray-300 pt-4">
-          <h3 className="text-lg font-semibold mb-2">
-            {searchType === "medicine"
-              ? `Pharmacies with ${search.trim()}:`
-              : `Clinics matching "${search.trim()}":`}
-          </h3>
-          <ul className="space-y-2">
-            {places.map((p) => (
-              <li
-                key={p.id}
-                className={`p-4 border rounded-lg transition-all ${
-                  selectedPlace?.id === p.id
-                    ? "border-blue-500 shadow-lg bg-blue-50"
-                    : "border-gray-200 hover:shadow-md"
-                }`}
+        {/* Search Box */}
+        <div
+          className="mb-6 animate-fade-in-up"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <div className="relative flex">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+              <svg
+                className="w-5 h-5 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              placeholder={
+                searchType === "medicine"
+                  ? "Search medicine (e.g. Oxitocin)"
+                  : "Search by doctor or clinic name..."
+              }
+              className="flex-1 pl-12 pr-4 py-4 rounded-l-2xl border-2 border-r-0 border-slate-200 
+                         bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 
+                         focus:border-blue-500 text-slate-800 placeholder-slate-400 font-medium transition-all"
+            />
+            <button
+              onClick={handleSearch}
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold 
+                         rounded-r-2xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg 
+                         hover:shadow-blue-500/25 flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              Search
+            </button>
+          </div>
+        </div>
+
+        {loading && (
+          <div className="glass-card rounded-2xl p-6 mb-6 flex items-center justify-center gap-3 animate-pulse">
+            <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+            <span className="text-slate-600 font-medium">
+              Finding nearby{" "}
+              {searchType === "medicine" ? "pharmacies" : "clinics"}...
+            </span>
+          </div>
+        )}
+
+        {/* Not Found Message */}
+        {notFound && !loading && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-l-4 border-amber-400 animate-fade-in-up">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🔎</span>
+              <div>
+                <p className="font-bold text-slate-800">
+                  {searchType === "medicine"
+                    ? "Medicine Not Available"
+                    : "No Clinics Found"}
+                </p>
+                <p className="text-slate-600 text-sm">
+                  {searchType === "medicine"
+                    ? `No pharmacies found with "${search.trim()}" in stock nearby.`
+                    : `No clinics found matching "${search.trim()}".`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Map */}
+        <div
+          className="rounded-2xl overflow-hidden shadow-xl border-4 border-white/50 mb-6 animate-fade-in-up"
+          style={{ animationDelay: "0.15s" }}
+        >
+          <div className="h-96">
+            <OSMMapView
+              userLocation={userLocation}
+              pharmacies={places}
+              accuracy={accuracy}
+              selectedPlace={selectedPlace}
+            />
+          </div>
+        </div>
+
+        {/* Results List */}
+        {places.length > 0 && (
+          <div
+            className="animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">
+                {searchType === "medicine" ? "💊" : "🏥"}
+              </span>
+              <h3 className="text-lg font-bold text-slate-800">
+                {searchType === "medicine"
+                  ? `Pharmacies with ${search.trim() || "medicines"}:`
+                  : `Clinics ${
+                      search.trim() ? `matching "${search.trim()}"` : "near you"
+                    }:`}
+              </h3>
+              <span className="ml-auto px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {places.length} found
+              </span>
+            </div>
+            <div className="grid gap-4">
+              {places.map((p, index) => (
                 <div
+                  key={p.id}
+                  className={`group relative glass-card rounded-2xl overflow-hidden transition-all duration-300 animate-fade-in-up cursor-pointer ${
+                    selectedPlace?.id === p.id
+                      ? "ring-2 ring-blue-500 shadow-xl"
+                      : "hover:shadow-xl"
+                  }`}
+                  style={{ animationDelay: `${index * 0.05}s` }}
                   onClick={() => handlePlaceClick(p)}
-                  className="cursor-pointer"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-semibold text-blue-600">
-                        {p.name}
-                      </div>
-                      {p.placeType === "clinic" && p.doctorName && (
-                        <div className="text-sm text-gray-700">
-                          Dr. {p.doctorName}
+                  <div className="p-5">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow ${
+                              p.placeType === "pharmacy"
+                                ? "bg-gradient-to-br from-blue-500 to-blue-600"
+                                : "bg-gradient-to-br from-teal-500 to-emerald-500"
+                            }`}
+                          >
+                            {p.placeType === "pharmacy" ? "💊" : "🏥"}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-800">
+                              {p.name}
+                            </h4>
+                            {p.placeType === "clinic" && p.doctorName && (
+                              <p className="text-sm text-teal-600 font-medium">
+                                Dr. {p.doctorName}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <div className="text-sm text-gray-500">
-                        📍{" "}
-                        {p.distance < 1
-                          ? `${(p.distance * 1000).toFixed(0)} m`
-                          : `${p.distance.toFixed(2)} km`}{" "}
-                        away
-                      </div>
-                    </div>
-                    {p.placeType === "pharmacy" &&
-                      (p.isOpen ? (
-                        <span className="text-green-600 font-medium">Open</span>
-                      ) : (
-                        <span className="text-red-600 font-medium">Closed</span>
-                      ))}
-                    {p.placeType === "clinic" && p.openTime && p.closeTime && (
-                      <span className="text-gray-600 text-sm">
-                        🕒 {p.openTime} - {p.closeTime}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    📍 {p.address}
-                  </div>
-                  {p.placeType === "pharmacy" &&
-                    (p.medicines ? (
-                      <div className="text-gray-800 mt-1">
-                        {p.medicines.slice(0, 3).map((m, i) => (
-                          <span key={i} className="inline-block mr-2">
-                            {m.name}
-                            {m.dosage ? ` - ${m.dosage}mg` : ""} - ₹{m.price}
+
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-50 text-cyan-700 rounded-full text-xs font-semibold border border-cyan-200">
+                            📍{" "}
+                            {p.distance < 1
+                              ? `${(p.distance * 1000).toFixed(0)} m`
+                              : `${p.distance.toFixed(1)} km`}
                           </span>
-                        ))}
-                        {p.medicines.length > 3 && (
-                          <span className="text-sm text-gray-600">
-                            +{p.medicines.length - 3} more
-                          </span>
+
+                          {p.placeType === "pharmacy" && (
+                            <span
+                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${
+                                p.isOpen
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : "bg-red-50 text-red-600 border-red-200"
+                              }`}
+                            >
+                              {p.isOpen ? "✓ Open" : "✕ Closed"}
+                            </span>
+                          )}
+
+                          {p.placeType === "clinic" &&
+                            p.openTime &&
+                            p.closeTime && (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-xs font-semibold border border-violet-200">
+                                🕒 {p.openTime} - {p.closeTime}
+                              </span>
+                            )}
+
+                          {p.placeType === "clinic" && p.fees && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold border border-amber-200">
+                              💰 ₹{p.fees}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-slate-500 mb-2 flex items-start gap-1">
+                          <svg
+                            className="w-4 h-4 mt-0.5 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                          </svg>
+                          {p.address}
+                        </p>
+
+                        {p.placeType === "pharmacy" && p.medicines && (
+                          <div className="flex flex-wrap gap-2">
+                            {p.medicines.slice(0, 3).map((m, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs"
+                              >
+                                {m.name}
+                                {m.dosage ? ` ${m.dosage}mg` : ""} - ₹{m.price}
+                              </span>
+                            ))}
+                            {p.medicines.length > 3 && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                                +{p.medicines.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {p.placeType === "pharmacy" &&
+                          !p.medicines &&
+                          p.medicine && (
+                            <div className="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs inline-block">
+                              {p.medicine} - {p.type} - {p.dosage}mg - ₹
+                              {p.price}
+                            </div>
+                          )}
+
+                        {selectedPlace?.id === p.id && (
+                          <div className="mt-3 text-sm text-blue-600 font-medium flex items-center gap-1">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                              />
+                            </svg>
+                            Route shown on map
+                          </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="text-gray-800 mt-1">
-                        {p.medicine} - {p.type} - {p.dosage}mg - ₹{p.price}
-                      </div>
-                    ))}
-                  {p.placeType === "clinic" && p.fees && (
-                    <div className="text-gray-800 mt-1">
-                      Consultation Fees: ₹{p.fees}
                     </div>
-                  )}
-                  {selectedPlace?.id === p.id && (
-                    <div className="mt-2 text-sm text-blue-600 font-medium">
-                      📍 Route shown on map
-                    </div>
-                  )}
-                </div>
 
-                {/* Book Appointment Button for Clinics */}
-                {p.placeType === "clinic" && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBookAppointment(p.id);
-                      }}
-                      className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2.5 rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
-                    >
-                      📅 Book Appointment
-                    </button>
+                    {/* Book Appointment Button for Clinics */}
+                    {p.placeType === "clinic" && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBookAppointment(p.id);
+                          }}
+                          className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold 
+                                     hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg hover:shadow-emerald-500/25
+                                     hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          Book Appointment
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

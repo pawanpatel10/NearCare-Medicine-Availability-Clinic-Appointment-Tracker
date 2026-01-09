@@ -217,98 +217,137 @@ export default function PharmacyProfile() {
 
   if (loading)
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="min-h-screen bg-mesh flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin"></div>
+          <p className="text-slate-600 font-medium">Loading profile...</p>
+        </div>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-mesh">
       <Navbar />
 
-      <main className="max-w-3xl mx-auto p-6">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => navigate("/pharmacy-dashboard")}
-            className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <ArrowLeft size={20} className="text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Store Profile</h1>
-            <p className="text-gray-500 text-sm">
-              Update your pharmacy information
-            </p>
+        <div className="relative mb-6 animate-fade-in-up">
+          <div className="absolute inset-0 bg-gradient-to-r from-violet-600/10 to-fuchsia-600/10 rounded-3xl blur-xl"></div>
+          <div className="relative glass-card rounded-3xl p-6">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/pharmacy-dashboard")}
+                className="w-12 h-12 rounded-xl bg-white shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+              >
+                <ArrowLeft size={20} className="text-slate-600" />
+              </button>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Store Profile
+                </h1>
+                <p className="text-slate-500 text-sm">
+                  Update your pharmacy information
+                </p>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
+                <Store size={24} className="text-white" />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+        <div
+          className="glass-card rounded-2xl p-6 sm:p-8 space-y-6 animate-fade-in-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           {/* Store Name */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-              <Store size={16} /> Store Name
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                <Store size={16} className="text-violet-600" />
+              </div>
+              Store Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. MedPlus Pharmacy"
-              className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-teal-500 focus:bg-white outline-none transition-all font-medium text-gray-700"
+              className="w-full p-4 bg-white/80 rounded-xl border-2 border-slate-200 
+                         focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 
+                         outline-none transition-all font-medium text-slate-700"
             />
           </div>
 
           {/* Phone */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-              <Phone size={16} /> Contact Number
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Phone size={16} className="text-blue-600" />
+              </div>
+              Contact Number
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="10-digit mobile number"
-              className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-teal-500 focus:bg-white outline-none transition-all font-medium text-gray-700"
+              className="w-full p-4 bg-white/80 rounded-xl border-2 border-slate-200 
+                         focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 
+                         outline-none transition-all font-medium text-slate-700"
             />
           </div>
 
           {/* Timings */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                <Clock size={16} /> Opens At
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                  <Clock size={16} className="text-teal-600" />
+                </div>
+                Opens At
               </label>
               <input
                 type="time"
                 value={openTime}
                 onChange={(e) => setOpenTime(e.target.value)}
-                className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-teal-500 focus:bg-white outline-none transition-all font-medium text-gray-700"
+                className="w-full p-4 bg-white/80 rounded-xl border-2 border-slate-200 
+                           focus:border-teal-500 focus:ring-4 focus:ring-teal-500/20 
+                           outline-none transition-all font-medium text-slate-700"
               />
             </div>
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                <Clock size={16} /> Closes At
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                  <Clock size={16} className="text-rose-600" />
+                </div>
+                Closes At
               </label>
               <input
                 type="time"
                 value={closeTime}
                 onChange={(e) => setCloseTime(e.target.value)}
-                className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-teal-500 focus:bg-white outline-none transition-all font-medium text-gray-700"
+                className="w-full p-4 bg-white/80 rounded-xl border-2 border-slate-200 
+                           focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20 
+                           outline-none transition-all font-medium text-slate-700"
               />
             </div>
           </div>
 
           {/* Location Section */}
-          <div className="pt-4 border-t border-gray-100">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-              <MapPin size={16} /> Store Location
+          <div className="pt-6 border-t border-slate-200">
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <MapPin size={16} className="text-emerald-600" />
+              </div>
+              Store Location
             </label>
 
             {/* Search Box */}
             <div className="relative mb-4">
               <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 size={18}
               />
               <input
@@ -316,19 +355,21 @@ export default function PharmacyProfile() {
                 placeholder="Search your store location..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full p-4 pl-12 bg-gray-50 rounded-xl border-2 border-transparent focus:border-teal-500 focus:bg-white outline-none transition-all font-medium text-gray-700"
+                className="w-full p-4 pl-12 bg-white/80 rounded-xl border-2 border-slate-200 
+                           focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 
+                           outline-none transition-all font-medium text-slate-700"
               />
               {suggestions.length > 0 && (
-                <ul className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-48 overflow-y-auto">
+                <ul className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden max-h-48 overflow-y-auto">
                   {suggestions.map((s, i) => (
                     <li
                       key={i}
                       onClick={() => onSelectSuggestion(s)}
-                      className="p-3 hover:bg-teal-50 cursor-pointer text-sm flex items-start gap-2 border-b last:border-0 text-gray-600"
+                      className="p-3 hover:bg-emerald-50 cursor-pointer text-sm flex items-start gap-2 border-b last:border-0 text-slate-600"
                     >
                       <MapPin
                         size={14}
-                        className="text-teal-500 mt-0.5 shrink-0"
+                        className="text-emerald-500 mt-0.5 shrink-0"
                       />
                       {s.display_name}
                     </li>
@@ -338,10 +379,11 @@ export default function PharmacyProfile() {
             </div>
 
             {/* Map */}
-            <div className="h-56 rounded-2xl overflow-hidden border-2 border-gray-100 relative">
+            <div className="h-56 rounded-2xl overflow-hidden border-2 border-slate-200 relative shadow-lg">
               <button
                 onClick={detectLocation}
-                className="absolute top-3 right-3 z-1000 bg-white p-2.5 rounded-full shadow-md text-teal-600 hover:scale-110 active:scale-90 transition-all"
+                className="absolute top-3 right-3 z-1000 bg-white p-3 rounded-xl shadow-lg text-emerald-600 
+                           hover:scale-110 active:scale-90 transition-all hover:shadow-emerald-500/25"
               >
                 <Navigation size={18} />
               </button>
@@ -359,11 +401,13 @@ export default function PharmacyProfile() {
 
             {/* Selected Address */}
             {address && (
-              <div className="mt-3 bg-teal-50 p-3 rounded-xl border border-teal-100">
-                <p className="text-xs font-bold text-teal-600 uppercase mb-1">
-                  Selected Address:
+              <div className="mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-xl border border-emerald-200">
+                <p className="text-xs font-bold text-emerald-600 uppercase mb-1 flex items-center gap-1">
+                  <MapPin size={12} /> Selected Address
                 </p>
-                <p className="text-sm font-medium text-teal-900">{address}</p>
+                <p className="text-sm font-medium text-emerald-900">
+                  {address}
+                </p>
               </div>
             )}
           </div>
@@ -372,11 +416,14 @@ export default function PharmacyProfile() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-4 bg-teal-600 text-white rounded-xl font-bold text-lg hover:bg-teal-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl 
+                       font-bold text-lg hover:from-violet-700 hover:to-fuchsia-700 
+                       active:scale-[0.98] disabled:opacity-50 transition-all 
+                       flex items-center justify-center gap-2 shadow-lg hover:shadow-violet-500/25"
           >
             {saving ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 Saving...
               </>
             ) : (
