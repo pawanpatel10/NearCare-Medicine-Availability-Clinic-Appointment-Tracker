@@ -24,6 +24,7 @@ import InventoryScanner from "./components/InventoryScanner";
 import PharmacyInventory from "./components/PharmacyInventory";
 import UserFindMedicines from "./components/UserFindMedicine";
 import About from "./components/About";
+import RoleSelection from "./components/RoleSelection";
 
 function App() {
   return (
@@ -56,6 +57,16 @@ function App() {
           element={
             <ProtectedRoute>
               <EmailVerification />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Role Selection - for users without a role */}
+        <Route
+          path="/select-role"
+          element={
+            <ProtectedRoute>
+              <RoleSelection />
             </ProtectedRoute>
           }
         />

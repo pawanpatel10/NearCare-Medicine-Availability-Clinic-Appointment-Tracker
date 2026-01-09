@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, actionCodeSettings } from "../firebaseConfig";
-import { createUserWithEmailAndPassword, updateProfile, sendSignInLinkToEmail } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendSignInLinkToEmail,
+} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import "./auth.css";
 
@@ -12,7 +16,7 @@ function Signup() {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
-  
+
   const [form, setForm] = useState({
     role: "user",
     name: "",
@@ -27,11 +31,11 @@ function Signup() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    
+
     // Reset location when role changes to pharmacy
     if (name === "role" && value === "pharmacy") {
       setLocationGranted(false);
-      setForm(prev => ({ ...prev, address: "", lat: null, lng: null }));
+      setForm((prev) => ({ ...prev, address: "", lat: null, lng: null }));
     }
   };
 
@@ -64,27 +68,29 @@ function Signup() {
       async (position) => {
         console.log("Location received:", position.coords);
         const { latitude, longitude } = position.coords;
-        
+
         try {
           const address = await getAddressFromCoords(latitude, longitude);
           console.log("Address:", address);
-          
-          setForm(prev => ({
+
+          setForm((prev) => ({
             ...prev,
             lat: latitude,
             lng: longitude,
-            address: address
+            address: address,
           }));
           setLocationGranted(true);
           setLoadingLocation(false);
         } catch (err) {
           console.error("Address fetch error:", err);
           // Still save coordinates even if address fails
-          setForm(prev => ({
+          setForm((prev) => ({
             ...prev,
             lat: latitude,
             lng: longitude,
-            address: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`
+            address: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(
+              4
+            )}`,
           }));
           setLocationGranted(true);
           setLoadingLocation(false);
@@ -94,25 +100,31 @@ function Signup() {
         console.error("Geolocation error:", error);
         setLoadingLocation(false);
         setLocationGranted(false);
-        
-        switch(error.code) {
+
+        switch (error.code) {
           case 1: // PERMISSION_DENIED
-            setError("❌ Location access denied. Please allow location access in your browser settings and try again.");
+            setError(
+              "❌ Location access denied. Please allow location access in your browser settings and try again."
+            );
             break;
           case 2: // POSITION_UNAVAILABLE
-            setError("❌ Location unavailable. Please check that your device's location services are enabled.");
+            setError(
+              "❌ Location unavailable. Please check that your device's location services are enabled."
+            );
             break;
           case 3: // TIMEOUT
-            setError("❌ Location request timed out. Please check your internet connection and try again.");
+            setError(
+              "❌ Location request timed out. Please check your internet connection and try again."
+            );
             break;
           default:
             setError("❌ Failed to get location: " + error.message);
         }
       },
-      { 
+      {
         enableHighAccuracy: false,
         timeout: 30000,
-        maximumAge: 60000
+        maximumAge: 60000,
       }
     );
   };
@@ -128,17 +140,12 @@ function Signup() {
       return setError("Password must be at least 6 characters.");
     }
 
-    // Check if pharmacy has granted location access
-    if (form.role === "pharmacy" && !locationGranted) {
-      return setError("Please grant location access to continue as a pharmacy.");
-    }
-
     try {
       setLoading(true);
 
       const userCredential = await createUserWithEmailAndPassword(
-        auth, 
-        form.email, 
+        auth,
+        form.email,
         form.password
       );
       const user = userCredential.user;
@@ -147,35 +154,18 @@ function Signup() {
 
       const docRef = doc(db, "users", user.uid);
 
-      // Default user data
+      // Create user with null role - will select role on next page
       const userData = {
         uid: user.uid,
         name: form.name,
         email: form.email,
-        role: form.role,
-        createdAt: new Date()
+        role: null, // No role yet - will select on role selection page
+        createdAt: new Date(),
       };
 
-      // If pharmacy, save with location data
-      if (form.role === "pharmacy") {
-        await setDoc(docRef, {
-          ...userData,
-          lat: form.lat,
-          lng: form.lng,
-          address: form.address,
-          isOpen: true,
-          currentToken: 0
-        });
-        setLoading(false);
-        navigate("/pharmacy-dashboard");
-      } else {
-        // Regular user or clinic
-        await setDoc(docRef, userData);
-        setLoading(false);
-        if (form.role === "clinic") navigate("/doctor-dashboard");
-        else navigate("/home");
-      }
-
+      await setDoc(docRef, userData);
+      setLoading(false);
+      navigate("/select-role");
     } catch (err) {
       setLoading(false);
       console.error(err);
@@ -199,11 +189,6 @@ function Signup() {
       return setError("Please enter your email");
     }
 
-    // Check if pharmacy has granted location access
-    if (form.role === "pharmacy" && !locationGranted) {
-      return setError("Please grant location access to continue as a pharmacy.");
-    }
-
     try {
       setLoading(true);
 
@@ -214,10 +199,7 @@ function Signup() {
       const userData = {
         name: form.name,
         email: form.email,
-        role: form.role,
-        address: form.role === "pharmacy" ? form.address : "",
-        lat: form.role === "pharmacy" ? form.lat : null,
-        lng: form.role === "pharmacy" ? form.lng : null,
+        role: null, // Will select role after email verification
       };
 
       window.localStorage.setItem("newUserData", JSON.stringify(userData));
@@ -252,13 +234,6 @@ function Signup() {
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Create Account</h2>
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
-
-        <label>Account Type</label>
-        <select name="role" value={form.role} onChange={handleChange}>
-          <option value="user">Patient / User</option>
-          <option value="pharmacy">Pharmacy Owner</option>
-          <option value="clinic">Doctor / Clinic</option>
-        </select>
 
         <label>Full Name</label>
         <input
@@ -296,64 +271,7 @@ function Signup() {
           required
         />
 
-        {form.role === "pharmacy" && (
-          <>
-            <label>Pharmacy Address *</label>
-            {!locationGranted ? (
-              <button
-                type="button"
-                onClick={requestLocation}
-                disabled={loadingLocation}
-                style={{
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  padding: "10px",
-                  marginBottom: "10px",
-                  cursor: loadingLocation ? "not-allowed" : "pointer"
-                }}
-              >
-                {loadingLocation ? "Getting Location..." : "📍 Get My Location"}
-              </button>
-            ) : (
-              <div style={{
-                backgroundColor: "#e8f5e9",
-                padding: "10px",
-                borderRadius: "4px",
-                marginBottom: "10px",
-                fontSize: "14px"
-              }}>
-                <p style={{ margin: "0 0 5px 0", color: "#2e7d32", fontWeight: "bold" }}>
-                  ✓ Location Captured
-                </p>
-                <p style={{ margin: "0", color: "#555" }}>
-                  {form.address}
-                </p>
-                <button
-                  type="button"
-                  onClick={requestLocation}
-                  disabled={loadingLocation}
-                  style={{
-                    backgroundColor: "transparent",
-                    color: "#1976d2",
-                    border: "none",
-                    padding: "5px 0",
-                    marginTop: "5px",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    fontSize: "13px"
-                  }}
-                >
-                  Update Location
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        
-
-
-<button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading}>
           {loading ? "Creating..." : "Sign Up"}
         </button>
 
@@ -373,28 +291,34 @@ function Signup() {
             cursor: loading ? "not-allowed" : "pointer",
             fontSize: "14px",
             fontWeight: "600",
-            marginBottom: "10px"
+            marginBottom: "10px",
           }}
         >
           {loading ? "Sending..." : "📧 Sign Up with Email Link"}
         </button>
 
         {linkSent && (
-          <div style={{
-            backgroundColor: "#dcfce7",
-            color: "#166534",
-            padding: "10px",
-            borderRadius: "4px",
-            marginBottom: "10px",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
+          <div
+            style={{
+              backgroundColor: "#dcfce7",
+              color: "#166534",
+              padding: "10px",
+              borderRadius: "4px",
+              marginBottom: "10px",
+              fontSize: "14px",
+              fontWeight: "500",
+            }}
+          >
             ✅ Signup link sent! Check your email to complete registration.
           </div>
         )}
 
-        <p className="link" onClick={() => navigate("/login")} style={{cursor: "pointer"}}>
-           Already have an account? Login
+        <p
+          className="link"
+          onClick={() => navigate("/login")}
+          style={{ cursor: "pointer" }}
+        >
+          Already have an account? Login
         </p>
       </form>
     </div>

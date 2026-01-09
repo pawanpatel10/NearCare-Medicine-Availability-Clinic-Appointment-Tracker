@@ -5,23 +5,34 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   const { currentUser, userRole, loading } = useAuth();
   const location = useLocation();
 
-  // ⏳ Wait for auth to load
-  if (loading) return null;
+  // ⏳ Wait for auth to load - show loading indicator
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   // 🔐 Not logged in - redirect to login
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // 🟡 User is authenticated but has no role
-  if (!userRole) {
-    // If we don't have a role, we can't really do anything.
-    // Redirect to login or show a "Contact Support" / "Error" state.
-    // For now, let's redirect to login to force a refresh/re-check.
-    return <Navigate to="/login" replace />;
+  // 🟡 User is authenticated but has no role - redirect to role selection
+  // But allow access if already on /select-role to avoid infinite loop
+  if (!userRole && location.pathname !== "/select-role") {
+    return <Navigate to="/select-role" replace />;
   }
 
-  // ✅ If no role restrictions specified, allow access
+  // ✅ If no role restrictions specified, allow access (including /select-role)
   if (!allowedRoles) {
     return children;
   }
@@ -50,8 +61,21 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 export function PublicRoute({ children }) {
   const { currentUser, userRole, loading } = useAuth();
 
-  // ⏳ Wait for auth
-  if (loading) return null;
+  // ⏳ Wait for auth - show a loading indicator instead of blank screen
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   // If user is logged in with a valid role, redirect to their dashboard
   if (currentUser && userRole) {
@@ -62,11 +86,7 @@ export function PublicRoute({ children }) {
     if (userRole === "user") return <Navigate to="/home" replace />;
   }
 
-  // If logged in but no role, redirect to login
-  if (currentUser && !userRole) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // ✅ Not logged in, allow access to public route
+  // ✅ If not logged in OR logged in but no role yet, allow access to public route
+  // (This prevents infinite redirect loops when user has no role)
   return children;
 }
