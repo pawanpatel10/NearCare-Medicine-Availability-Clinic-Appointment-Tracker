@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebaseConfig";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import {
   MapContainer,
   TileLayer,
@@ -171,22 +177,31 @@ export default function PharmacyProfile() {
     try {
       const user = auth.currentUser;
 
-      // Update pharmacies collection
-      await updateDoc(doc(db, "pharmacies", user.uid), {
-        name,
-        phone,
-        address,
-        openTime,
-        closeTime,
-        lat: coords[0],
-        lng: coords[1],
-        updatedAt: serverTimestamp(),
-      });
+      // Update pharmacies collection (use setDoc with merge to create if not exists)
+      await setDoc(
+        doc(db, "pharmacies", user.uid),
+        {
+          name,
+          phone,
+          address,
+          openTime,
+          closeTime,
+          lat: coords[0],
+          lng: coords[1],
+          isProfileCompleted: true,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-      // Also update users collection for consistency
+      // Also update users collection for consistency and search visibility
       await updateDoc(doc(db, "users", user.uid), {
         name,
         phone,
+        lat: coords[0],
+        lng: coords[1],
+        address,
+        isProfileCompleted: true,
         updatedAt: serverTimestamp(),
       });
 

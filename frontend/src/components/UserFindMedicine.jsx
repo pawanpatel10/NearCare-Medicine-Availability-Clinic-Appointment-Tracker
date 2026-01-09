@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import OSMMapView from "./OSMMapView";
@@ -15,7 +22,7 @@ const UserFindMedicine = () => {
 
   const [locationError, setLocationError] = useState(null);
   const [notFound, setNotFound] = useState(false);
-  
+
   // New states for clinic search
   const [searchType, setSearchType] = useState("medicine"); // "medicine" or "clinic"
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -30,7 +37,9 @@ const UserFindMedicine = () => {
       },
       (err) => {
         console.error("Location error:", err);
-        setLocationError("Unable to access your location. Please enable location services to search for medicines.");
+        setLocationError(
+          "Unable to access your location. Please enable location services to search for medicines."
+        );
         setUserLocation(null);
       },
       { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
@@ -40,13 +49,15 @@ const UserFindMedicine = () => {
   // Calculate distance between two coordinates (in km)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -75,120 +86,142 @@ const UserFindMedicine = () => {
 
   // Search for medicine in pharmacies
   const searchMedicine = async () => {
-      // If search is empty, fetch all pharmacy inventory items and group by pharmacy
-      const term = search.toLowerCase().trim();
-      if (!term) {
-        const invQueryAll = query(
-          collection(db, "pharmacy_inventory"),
-          where("stock", ">", 0)
-        );
-
-        const inventorySnap = await getDocs(invQueryAll);
-        if (inventorySnap.empty) {
-          setNotFound(true);
-          return;
-        }
-
-        // Aggregate medicines per pharmacy
-        const map = new Map();
-        for (const docSnap of inventorySnap.docs) {
-          const item = docSnap.data();
-          try {
-            const userSnap = await getDoc(doc(db, "users", item.pharmacyId));
-            if (!userSnap.exists() || userSnap.data().role !== "pharmacy") continue;
-            const pharmacy = userSnap.data();
-            if (!pharmacy.lat || !pharmacy.lng) continue;
-
-            const existing = map.get(item.pharmacyId) || {
-              id: item.pharmacyId,
-              lat: pharmacy.lat,
-              lon: pharmacy.lng,
-              name: pharmacy.name,
-              address: pharmacy.address || "Address not available",
-              isOpen: pharmacy.isOpen,
-              medicines: []
-            };
-
-            existing.medicines.push({ name: item.name, price: item.price, dosage: item.dosage, type: item.type });
-            map.set(item.pharmacyId, existing);
-          } catch (err) {
-            console.error("Error fetching pharmacy for inventory", err);
-            continue;
-          }
-        }
-
-        const results = Array.from(map.values()).map((pharmacy) => {
-          const distance = userLocation
-            ? calculateDistance(userLocation[0], userLocation[1], pharmacy.lat, pharmacy.lon)
-            : Infinity;
-          return { ...pharmacy, distance, placeType: "pharmacy" };
-        });
-
-        if (results.length === 0) {
-          setNotFound(true);
-        } else {
-          results.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-        }
-
-        setPlaces(results);
-        return;
-      }
-
-      // 1️⃣ Search inventory by name
-      const invQuery = query(
+    // If search is empty, fetch all pharmacy inventory items and group by pharmacy
+    const term = search.toLowerCase().trim();
+    if (!term) {
+      const invQueryAll = query(
         collection(db, "pharmacy_inventory"),
-        where("name_lower", ">=", term),
-        where("name_lower", "<=", term + "\uf8ff"),
         where("stock", ">", 0)
       );
 
-      const inventorySnap = await getDocs(invQuery);
-
+      const inventorySnap = await getDocs(invQueryAll);
       if (inventorySnap.empty) {
         setNotFound(true);
         return;
       }
 
-      // 2️⃣ Fetch pharmacy users for matched items
-      const pharmacyPromises = inventorySnap.docs.map(async (docSnap) => {
+      // Aggregate medicines per pharmacy
+      const map = new Map();
+      for (const docSnap of inventorySnap.docs) {
         const item = docSnap.data();
-        const userSnap = await getDoc(doc(db, "users", item.pharmacyId));
-        if (userSnap.exists() && userSnap.data().role === "pharmacy") {
+        try {
+          const userSnap = await getDoc(doc(db, "users", item.pharmacyId));
+          if (!userSnap.exists() || userSnap.data().role !== "pharmacy")
+            continue;
           const pharmacy = userSnap.data();
-          if (!pharmacy.lat || !pharmacy.lng) return null;
+          // Check if profile is completed
+          if (!pharmacy.isProfileCompleted) continue;
+          if (!pharmacy.lat || !pharmacy.lng) continue;
 
-          const distance = userLocation
-            ? calculateDistance(userLocation[0], userLocation[1], pharmacy.lat, pharmacy.lng)
-            : Infinity;
-
-          return {
+          const existing = map.get(item.pharmacyId) || {
             id: item.pharmacyId,
             lat: pharmacy.lat,
             lon: pharmacy.lng,
             name: pharmacy.name,
             address: pharmacy.address || "Address not available",
-            medicine: item.name,
+            isOpen: pharmacy.isOpen,
+            medicines: [],
+          };
+
+          existing.medicines.push({
+            name: item.name,
             price: item.price,
             dosage: item.dosage,
             type: item.type,
-            isOpen: pharmacy.isOpen,
-            distance: distance,
-            placeType: "pharmacy"
-          };
+          });
+          map.set(item.pharmacyId, existing);
+        } catch (err) {
+          console.error("Error fetching pharmacy for inventory", err);
+          continue;
         }
-        return null;
+      }
+
+      const results = Array.from(map.values()).map((pharmacy) => {
+        const distance = userLocation
+          ? calculateDistance(
+              userLocation[0],
+              userLocation[1],
+              pharmacy.lat,
+              pharmacy.lon
+            )
+          : Infinity;
+        return { ...pharmacy, distance, placeType: "pharmacy" };
       });
 
-      const results = await Promise.all(pharmacyPromises);
-      const validResults = results.filter(Boolean);
-      
-      if (validResults.length === 0) {
+      if (results.length === 0) {
         setNotFound(true);
       } else {
-        // Sort by distance (nearest first)
-        validResults.sort((a, b) => a.distance - b.distance);
+        results.sort(
+          (a, b) => (a.distance || Infinity) - (b.distance || Infinity)
+        );
       }
-      setPlaces(validResults);
+
+      setPlaces(results);
+      return;
+    }
+
+    // 1️⃣ Search inventory by name
+    const invQuery = query(
+      collection(db, "pharmacy_inventory"),
+      where("name_lower", ">=", term),
+      where("name_lower", "<=", term + "\uf8ff"),
+      where("stock", ">", 0)
+    );
+
+    const inventorySnap = await getDocs(invQuery);
+
+    if (inventorySnap.empty) {
+      setNotFound(true);
+      return;
+    }
+
+    // 2️⃣ Fetch pharmacy users for matched items
+    const pharmacyPromises = inventorySnap.docs.map(async (docSnap) => {
+      const item = docSnap.data();
+      const userSnap = await getDoc(doc(db, "users", item.pharmacyId));
+      if (userSnap.exists() && userSnap.data().role === "pharmacy") {
+        const pharmacy = userSnap.data();
+        // Check if profile is completed
+        if (!pharmacy.isProfileCompleted) return null;
+        if (!pharmacy.lat || !pharmacy.lng) return null;
+
+        const distance = userLocation
+          ? calculateDistance(
+              userLocation[0],
+              userLocation[1],
+              pharmacy.lat,
+              pharmacy.lng
+            )
+          : Infinity;
+
+        return {
+          id: item.pharmacyId,
+          lat: pharmacy.lat,
+          lon: pharmacy.lng,
+          name: pharmacy.name,
+          address: pharmacy.address || "Address not available",
+          medicine: item.name,
+          price: item.price,
+          dosage: item.dosage,
+          type: item.type,
+          isOpen: pharmacy.isOpen,
+          distance: distance,
+          placeType: "pharmacy",
+        };
+      }
+      return null;
+    });
+
+    const results = await Promise.all(pharmacyPromises);
+    const validResults = results.filter(Boolean);
+
+    if (validResults.length === 0) {
+      setNotFound(true);
+    } else {
+      // Sort by distance (nearest first)
+      validResults.sort((a, b) => a.distance - b.distance);
+    }
+    setPlaces(validResults);
   };
 
   // Search for clinics by doctor name or clinic name
@@ -200,15 +233,15 @@ const UserFindMedicine = () => {
     }
 
     const searchTerm = search.toLowerCase().trim();
-    
+
     // Get all users with role "clinic"
     const usersQuery = query(
       collection(db, "users"),
       where("role", "==", "clinic")
     );
-    
+
     const usersSnap = await getDocs(usersQuery);
-    
+
     if (usersSnap.empty) {
       console.log("No clinic users found in database");
       setNotFound(true);
@@ -221,34 +254,34 @@ const UserFindMedicine = () => {
     const clinicPromises = usersSnap.docs.map(async (userDoc) => {
       const userData = userDoc.data();
       const clinicId = userDoc.id;
-      
+
       // Check if clinic name or doctor name matches search
       const doctorName = (userData.name || "").toLowerCase();
       const clinicNameFromUser = (userData.clinicName || "").toLowerCase();
-      
+
       // Fetch clinic details
       const clinicSnap = await getDoc(doc(db, "clinics", clinicId));
-      
+
       let clinicData = null;
       if (clinicSnap.exists()) {
         clinicData = clinicSnap.data();
       }
-      
+
       const clinicName = clinicData?.name || userData.clinicName || "";
       const clinicNameLower = clinicName.toLowerCase();
-      
+
       // Match against search term
-      const matchesSearch = 
-        doctorName.includes(searchTerm) || 
+      const matchesSearch =
+        doctorName.includes(searchTerm) ||
         clinicNameLower.includes(searchTerm) ||
         clinicNameFromUser.includes(searchTerm);
-      
+
       if (!matchesSearch) return null;
-      
+
       // Get location from clinic data or user data
       const lat = clinicData?.lat || userData.lat;
       const lng = clinicData?.lng || userData.lng;
-      
+
       // Check if location data exists
       if (!lat || !lng) {
         console.log(`Clinic ${clinicId} has no location data`);
@@ -268,20 +301,21 @@ const UserFindMedicine = () => {
         lon: lng,
         name: clinicName || userData.name,
         doctorName: userData.name,
-        address: (clinicData?.address || userData.address || "Address not available"),
+        address:
+          clinicData?.address || userData.address || "Address not available",
         fees: clinicData?.fees || userData.fees,
         openTime: clinicData?.openTime || userData.openTime,
         closeTime: clinicData?.closeTime || userData.closeTime,
         distance: distance,
-        placeType: "clinic"
+        placeType: "clinic",
       };
     });
 
     const results = await Promise.all(clinicPromises);
     const validResults = results.filter(Boolean);
-    
+
     console.log(`Found ${validResults.length} clinics matching search`);
-    
+
     if (validResults.length === 0) {
       setNotFound(true);
     } else {
@@ -398,16 +432,21 @@ const UserFindMedicine = () => {
         </button>
       </div>
 
-      {loading && <p className="text-gray-600 mb-2">Finding nearby pharmacies...</p>}
+      {loading && (
+        <p className="text-gray-600 mb-2">Finding nearby pharmacies...</p>
+      )}
 
       {/* Not Found Message */}
       {notFound && !loading && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-          <strong>{searchType === "medicine" ? "Medicine Not Available:" : "No Clinics Found:"}</strong> 
-          {searchType === "medicine" 
+          <strong>
+            {searchType === "medicine"
+              ? "Medicine Not Available:"
+              : "No Clinics Found:"}
+          </strong>
+          {searchType === "medicine"
             ? ` No pharmacies found with "${search.trim()}" in stock nearby.`
-            : ` No clinics found matching "${search.trim()}".`
-          }
+            : ` No clinics found matching "${search.trim()}".`}
         </div>
       )}
 
@@ -425,10 +464,9 @@ const UserFindMedicine = () => {
       {places.length > 0 && (
         <div className="border-t border-gray-300 pt-4">
           <h3 className="text-lg font-semibold mb-2">
-            {searchType === "medicine" 
-              ? `Pharmacies with ${search.trim()}:` 
-              : `Clinics matching "${search.trim()}":`
-            }
+            {searchType === "medicine"
+              ? `Pharmacies with ${search.trim()}:`
+              : `Clinics matching "${search.trim()}":`}
           </h3>
           <ul className="space-y-2">
             {places.map((p) => (
@@ -436,54 +474,67 @@ const UserFindMedicine = () => {
                 key={p.id}
                 className={`p-4 border rounded-lg transition-all ${
                   selectedPlace?.id === p.id
-                    ? 'border-blue-500 shadow-lg bg-blue-50'
-                    : 'border-gray-200 hover:shadow-md'
+                    ? "border-blue-500 shadow-lg bg-blue-50"
+                    : "border-gray-200 hover:shadow-md"
                 }`}
               >
-                <div 
+                <div
                   onClick={() => handlePlaceClick(p)}
                   className="cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="font-semibold text-blue-600">{p.name}</div>
+                      <div className="font-semibold text-blue-600">
+                        {p.name}
+                      </div>
                       {p.placeType === "clinic" && p.doctorName && (
-                        <div className="text-sm text-gray-700">Dr. {p.doctorName}</div>
+                        <div className="text-sm text-gray-700">
+                          Dr. {p.doctorName}
+                        </div>
                       )}
-                      <div className="text-sm text-gray-500">📍 {p.distance < 1 ? `${(p.distance * 1000).toFixed(0)} m` : `${p.distance.toFixed(2)} km`} away</div>
+                      <div className="text-sm text-gray-500">
+                        📍{" "}
+                        {p.distance < 1
+                          ? `${(p.distance * 1000).toFixed(0)} m`
+                          : `${p.distance.toFixed(2)} km`}{" "}
+                        away
+                      </div>
                     </div>
-                    {p.placeType === "pharmacy" && (
-                        p.isOpen ? (
-                          <span className="text-green-600 font-medium">Open</span>
-                        ) : (
-                          <span className="text-red-600 font-medium">Closed</span>
-                        )
-                    )}
+                    {p.placeType === "pharmacy" &&
+                      (p.isOpen ? (
+                        <span className="text-green-600 font-medium">Open</span>
+                      ) : (
+                        <span className="text-red-600 font-medium">Closed</span>
+                      ))}
                     {p.placeType === "clinic" && p.openTime && p.closeTime && (
                       <span className="text-gray-600 text-sm">
                         🕒 {p.openTime} - {p.closeTime}
                       </span>
                     )}
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">📍 {p.address}</div>
-                  {p.placeType === "pharmacy" && (
-                    p.medicines ? (
+                  <div className="text-sm text-gray-600 mt-1">
+                    📍 {p.address}
+                  </div>
+                  {p.placeType === "pharmacy" &&
+                    (p.medicines ? (
                       <div className="text-gray-800 mt-1">
-                        {p.medicines.slice(0,3).map((m, i) => (
+                        {p.medicines.slice(0, 3).map((m, i) => (
                           <span key={i} className="inline-block mr-2">
-                            {m.name}{m.dosage ? ` - ${m.dosage}mg` : ""} - ₹{m.price}
+                            {m.name}
+                            {m.dosage ? ` - ${m.dosage}mg` : ""} - ₹{m.price}
                           </span>
                         ))}
                         {p.medicines.length > 3 && (
-                          <span className="text-sm text-gray-600">+{p.medicines.length - 3} more</span>
+                          <span className="text-sm text-gray-600">
+                            +{p.medicines.length - 3} more
+                          </span>
                         )}
                       </div>
                     ) : (
                       <div className="text-gray-800 mt-1">
                         {p.medicine} - {p.type} - {p.dosage}mg - ₹{p.price}
                       </div>
-                    )
-                  )}
+                    ))}
                   {p.placeType === "clinic" && p.fees && (
                     <div className="text-gray-800 mt-1">
                       Consultation Fees: ₹{p.fees}
@@ -495,7 +546,7 @@ const UserFindMedicine = () => {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Book Appointment Button for Clinics */}
                 {p.placeType === "clinic" && (
                   <div className="mt-3 pt-3 border-t border-gray-200">

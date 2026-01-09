@@ -36,7 +36,11 @@ export default function EmailVerification() {
   const completeEmailSignIn = async (emailAddress) => {
     try {
       // Complete the sign-in with the email link
-      const result = await signInWithEmailLink(auth, emailAddress, window.location.href);
+      const result = await signInWithEmailLink(
+        auth,
+        emailAddress,
+        window.location.href
+      );
       const user = result.user;
 
       // Clear the stored email from localStorage
@@ -48,8 +52,10 @@ export default function EmailVerification() {
 
       if (!userSnap.exists()) {
         // New user - create profile
-        const userData = JSON.parse(window.localStorage.getItem("newUserData") || "{}");
-        
+        const userData = JSON.parse(
+          window.localStorage.getItem("newUserData") || "{}"
+        );
+
         // Get location if not provided
         let lat = userData.lat;
         let lng = userData.lng;
@@ -81,7 +87,12 @@ export default function EmailVerification() {
         });
 
         window.localStorage.removeItem("newUserData");
-        navigate("/complete-profile");
+
+        // Redirect based on role
+        const role = userData.role || "user";
+        if (role === "clinic") navigate("/doctor-dashboard");
+        else if (role === "pharmacy") navigate("/pharmacy-dashboard");
+        else navigate("/home");
       } else {
         // Existing user - redirect based on role
         await redirectUsingFirestore(user);
@@ -108,14 +119,14 @@ export default function EmailVerification() {
     const snap = await getDoc(docRef);
 
     if (!snap.exists()) {
-      navigate("/complete-profile");
+      navigate("/login");
       return;
     }
 
     const data = snap.data();
 
-    if (!data.role || !data.phone) {
-      navigate("/complete-profile");
+    if (!data.role) {
+      navigate("/login");
     } else if (data.role === "clinic") {
       navigate("/doctor-dashboard");
     } else if (data.role === "pharmacy") {
@@ -148,9 +159,12 @@ export default function EmailVerification() {
 
           {showEmailInput && (
             <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-800">Email Verification</h2>
+              <h2 className="text-xl font-bold text-gray-800">
+                Email Verification
+              </h2>
               <p className="text-gray-600 text-sm">
-                Please enter the email address associated with your account to complete verification.
+                Please enter the email address associated with your account to
+                complete verification.
               </p>
 
               <input

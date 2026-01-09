@@ -1,15 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, googleProvider, actionCodeSettings } from "../firebaseConfig";
-import { signInWithEmailAndPassword, signInWithPopup, sendSignInLinkToEmail } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  sendSignInLinkToEmail,
+} from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { useAuth } from "../context/AuthContext";
 import "./auth.css";
 
 function Login() {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [error, setError] = useState("");
   const [linkSent, setLinkSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
     role: "user",
     email: "",
@@ -25,6 +32,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -71,12 +79,16 @@ function Login() {
         }
       }
 
+      // ✅ Refresh auth context to ensure state is updated
+      await refreshUser();
+
       // ✅ FIXED: Redirect using Firestore, NOT dropdown role
       await redirectUsingFirestore(user);
-
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,14 +104,14 @@ function Login() {
 
     try {
       await sendSignInLinkToEmail(auth, form.email, actionCodeSettings);
-      
+
       // Save email to localStorage for later retrieval
       window.localStorage.setItem("emailForSignIn", form.email);
-      
+
       // Show success message
       setLinkSent(true);
       setForm({ ...form, email: "", password: "" });
-      
+
       // Auto-hide the success message after 5 seconds
       setTimeout(() => setLinkSent(false), 5000);
     } catch (err) {
@@ -112,6 +124,7 @@ function Login() {
   // Google Login
   // ------------------------------
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
@@ -119,40 +132,25 @@ function Login() {
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            await setDoc(docRef, {
-              uid: user.uid,
-              name: user.displayName,
-              email: user.email,
-              role: "",
-              phone: "",
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-              createdAt: new Date()
-            });
-            navigate("/complete-profile");
-          },
-          async () => {
-            await setDoc(docRef, {
-              uid: user.uid,
-              name: user.displayName,
-              email: user.email,
-              role: "",
-              phone: "",
-              lat: 25.4358,
-              lng: 81.8463,
-              createdAt: new Date()
-            });
-            navigate("/complete-profile");
-          }
-        );
+        // Create user with null role - will be redirected to role selection
+        await setDoc(docRef, {
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          role: null, // No role yet - will select on next page
+          createdAt: new Date(),
+        });
+        await refreshUser();
+        navigate("/select-role");
       } else {
+        await refreshUser();
         await redirectUsingFirestore(user);
       }
     } catch (err) {
       console.error(err);
       setError("Google sign-in failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -164,14 +162,14 @@ function Login() {
     const snap = await getDoc(docRef);
 
     if (!snap.exists()) {
-      navigate("/complete-profile");
+      navigate("/signup");
       return;
     }
 
     const data = snap.data();
 
-    if (!data.role || !data.phone) {
-      navigate("/complete-profile");
+    if (!data.role) {
+      navigate("/login");
     } else if (data.role === "clinic") {
       navigate("/doctor-dashboard");
     } else if (data.role === "pharmacy") {
@@ -189,17 +187,19 @@ function Login() {
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Login</h2>
         {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
-        
+
         {linkSent && (
-          <div style={{
-            backgroundColor: "#dcfce7",
-            color: "#166534",
-            padding: "10px",
-            borderRadius: "4px",
-            marginBottom: "10px",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
+          <div
+            style={{
+              backgroundColor: "#dcfce7",
+              color: "#166534",
+              padding: "10px",
+              borderRadius: "4px",
+              marginBottom: "10px",
+              fontSize: "14px",
+              fontWeight: "500",
+            }}
+          >
             ✅ Sign-in link sent to {form.email}! Check your email.
           </div>
         )}
@@ -234,7 +234,9 @@ function Login() {
           required
         />
 
-        <button type="submit" className="login-btn">Login</button>
+        <button type="submit" className="login-btn" disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Login"}
+        </button>
 
         <div style={{ textAlign: "center", margin: "10px 0" }}>OR</div>
 
@@ -242,6 +244,7 @@ function Login() {
           type="button"
           onClick={handleEmailLinkSignIn}
           className="email-link-btn"
+          disabled={isLoading}
           style={{
             background: "#3b82f6",
             color: "white",
@@ -252,7 +255,7 @@ function Login() {
             cursor: "pointer",
             fontSize: "14px",
             fontWeight: "600",
-            marginBottom: "10px"
+            marginBottom: "10px",
           }}
         >
           📧 Sign in with Email Link
@@ -262,9 +265,10 @@ function Login() {
           type="button"
           onClick={handleGoogleLogin}
           className="google-btn"
+          disabled={isLoading}
           style={{ background: "#db4437", color: "white" }}
         >
-          Sign in with Google
+          {isLoading ? "Signing in..." : "Sign in with Google"}
         </button>
 
         <p className="link">Forgot password?</p>

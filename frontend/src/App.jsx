@@ -20,11 +20,11 @@ import ClinicAppointments from "./components/ClinicAppointments";
 import ClinicSettings from "./components/ClinicSettings";
 import PharmacyHome from "./components/PharmacyHome";
 import PharmacyProfile from "./components/PharmacyProfile";
-import CompleteProfile from "./components/CompleteProfile";
 import InventoryScanner from "./components/InventoryScanner";
 import PharmacyInventory from "./components/PharmacyInventory";
 import UserFindMedicines from "./components/UserFindMedicine";
 import About from "./components/About";
+import RoleSelection from "./components/RoleSelection";
 
 function App() {
   return (
@@ -61,12 +61,12 @@ function App() {
           }
         />
 
-        {/* Helper Route - Accessible by logged in users to complete profile */}
+        {/* Role Selection - for users without a role */}
         <Route
-          path="/complete-profile"
+          path="/select-role"
           element={
             <ProtectedRoute>
-              <CompleteProfile />
+              <RoleSelection />
             </ProtectedRoute>
           }
         />
