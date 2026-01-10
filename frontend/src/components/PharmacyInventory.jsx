@@ -17,6 +17,7 @@ export default function PharmacyInventory() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false); // Prevent duplicate submissions
 
   // State for "Add Manual" Form
   const [showForm, setShowForm] = useState(false);
@@ -54,7 +55,9 @@ export default function PharmacyInventory() {
   // 2. Handle Manual Add
   const handleAddItem = async (e) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || saving) return;
+
+    setSaving(true);
 
     try {
       await addDoc(collection(db, "pharmacy_inventory"), {
@@ -77,6 +80,9 @@ export default function PharmacyInventory() {
       alert("Medicine added!");
     } catch (error) {
       console.error("Error adding item:", error);
+      alert("Failed to add medicine. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -185,6 +191,9 @@ export default function PharmacyInventory() {
                 <option>Syrup</option>
                 <option>Injection</option>
                 <option>Cream</option>
+                <option>Powder</option>
+                <option>Drops</option>
+                <option>Capsule</option>
               </select>
 
               <input
@@ -221,16 +230,30 @@ export default function PharmacyInventory() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition-all"
+                  disabled={saving}
+                  className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl 
-                             hover:from-teal-700 hover:to-emerald-700 font-semibold shadow-lg transition-all"
+                  disabled={saving}
+                  className={`px-6 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl 
+                             font-semibold shadow-lg transition-all flex items-center gap-2
+                             ${
+                               saving
+                                 ? "opacity-70 cursor-not-allowed"
+                                 : "hover:from-teal-700 hover:to-emerald-700"
+                             }`}
                 >
-                  Save Medicine
+                  {saving ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Medicine"
+                  )}
                 </button>
               </div>
             </form>

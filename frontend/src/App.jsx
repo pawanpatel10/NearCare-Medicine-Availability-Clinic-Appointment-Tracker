@@ -9,7 +9,6 @@ import "leaflet/dist/leaflet.css";
 
 // Import all your pages
 import Login from "./components/Login";
-import Signup from "./components/Signup";
 import EmailVerification from "./components/EmailVerification";
 import UserHome from "./components/UserHome";
 import BookAppointment from "./components/BookAppointment";
@@ -31,7 +30,7 @@ function App() {
     <Router>
       <Routes>
         {/* Default Route */}
-        <Route path="/" element={<Navigate to="/signup" />} />
+        <Route path="/" element={<Navigate to="/login" />} />
 
         {/* Public Routes - Redirect to dashboard if already logged in */}
         <Route
@@ -42,14 +41,9 @@ function App() {
             </PublicRoute>
           }
         />
-        <Route
-          path="/signup"
-          element={
-            <PublicRoute>
-              <Signup />
-            </PublicRoute>
-          }
-        />
+
+        {/* Redirect old signup route to login */}
+        <Route path="/signup" element={<Navigate to="/login" />} />
 
         {/* Email Verification - requires authentication */}
         <Route
