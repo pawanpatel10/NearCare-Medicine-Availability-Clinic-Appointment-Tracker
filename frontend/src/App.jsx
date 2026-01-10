@@ -8,6 +8,7 @@ import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute"; // <-
 import "leaflet/dist/leaflet.css";
 
 // Import all your pages
+import LandingPage from "./components/LandingPage";
 import Login from "./components/Login";
 import EmailVerification from "./components/EmailVerification";
 import UserHome from "./components/UserHome";
@@ -29,8 +30,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Default Route */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        {/* Landing Page - Default Route */}
+        <Route path="/" element={<LandingPage />} />
 
         {/* Public Routes - Redirect to dashboard if already logged in */}
         <Route
