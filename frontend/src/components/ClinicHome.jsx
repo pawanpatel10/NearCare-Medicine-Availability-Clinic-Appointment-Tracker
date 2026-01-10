@@ -9,6 +9,7 @@ import {
   query,
   where,
   getDocs,
+  onSnapshot,
 } from "firebase/firestore";
 import Navbar from "./Navbar";
 
@@ -22,8 +23,12 @@ export default function ClinicHome() {
   const [bookingsOpen, setBookingsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch clinic + queue status
+  // 🔹 Live clinic + queue status via onSnapshot
   useEffect(() => {
+    let unsubClinic;
+    let unsubWaiting;
+    let unsubServing;
+
     const fetchClinicData = async () => {
       try {
         const user = auth.currentUser;
@@ -32,37 +37,41 @@ export default function ClinicHome() {
           return;
         }
 
-        // Doctor name
+        // Doctor name (one-time fetch)
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           setDoctorName(userDoc.data().name);
         }
 
-        // Clinic data
-        const clinicDoc = await getDoc(doc(db, "clinics", user.uid));
-        if (clinicDoc.exists()) {
-          const data = clinicDoc.data();
-          setCurrentToken(data.currentToken || 0);
-          setBookingsOpen(data.bookingsOpen !== false); // default true
-        }
+        // Live clinic meta (token + booking state)
+        const clinicRef = doc(db, "clinics", user.uid);
+        unsubClinic = onSnapshot(clinicRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            setCurrentToken(data.currentToken || 0);
+            setBookingsOpen(data.bookingsOpen !== false); // default true
+          }
+        });
 
-        // Check serving
-        const servingQ = query(
-          collection(db, "appointments"),
-          where("clinicId", "==", user.uid),
-          where("status", "==", "serving")
-        );
-        const servingSnap = await getDocs(servingQ);
-        setHasServing(!servingSnap.empty);
-
-        // Count waiting
+        // Live waiting count
         const waitingQ = query(
           collection(db, "appointments"),
           where("clinicId", "==", user.uid),
           where("status", "==", "waiting")
         );
-        const waitingSnap = await getDocs(waitingQ);
-        setWaitingCount(waitingSnap.size);
+        unsubWaiting = onSnapshot(waitingQ, (snap) => {
+          setWaitingCount(snap.size);
+        });
+
+        // Live serving status
+        const servingQ = query(
+          collection(db, "appointments"),
+          where("clinicId", "==", user.uid),
+          where("status", "==", "serving")
+        );
+        unsubServing = onSnapshot(servingQ, (snap) => {
+          setHasServing(!snap.empty);
+        });
       } catch (err) {
         console.error("ClinicHome fetch error:", err);
       } finally {
@@ -71,6 +80,12 @@ export default function ClinicHome() {
     };
 
     fetchClinicData();
+
+    return () => {
+      if (unsubClinic) unsubClinic();
+      if (unsubWaiting) unsubWaiting();
+      if (unsubServing) unsubServing();
+    };
   }, [navigate]);
 
   // ▶ CALL NEXT PATIENT
