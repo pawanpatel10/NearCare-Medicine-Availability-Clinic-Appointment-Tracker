@@ -131,6 +131,12 @@ export default function ClinicHome() {
       status: "completed",
     });
 
+    // Reset currentToken to 0 so "Now Serving" shows N/A
+    await updateDoc(doc(db, "clinics", clinicId), {
+      currentToken: 0,
+    });
+
+    setCurrentToken(0);
     setHasServing(false);
   };
 
