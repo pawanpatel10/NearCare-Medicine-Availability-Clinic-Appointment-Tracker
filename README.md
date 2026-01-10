@@ -2,7 +2,7 @@
   
 # 🏥 NearCare
 
-### *Healthcare Made Accessible, One Click Away*
+### _Healthcare Made Accessible, One Click Away_
 
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-12.7-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
@@ -25,29 +25,32 @@
 ## ✨ Features
 
 ### 👤 For Patients
-| Feature | Description |
-|---------|-------------|
-| 🔍 **Medicine Search** | Find medicines at nearby pharmacies with real-time stock availability |
-| 🗺️ **Interactive Maps** | View pharmacy locations on OpenStreetMap with routing directions |
-| 📅 **Appointment Booking** | Book appointments at clinics with live queue tracking |
-| 🎫 **Token System** | Real-time "Now Serving" updates so you never miss your turn |
-| 📱 **Mobile Friendly** | Fully responsive design works on all devices |
+
+| Feature                    | Description                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| 🔍 **Medicine Search**     | Find medicines at nearby pharmacies with real-time stock availability |
+| 🗺️ **Interactive Maps**    | View pharmacy locations on OpenStreetMap with routing directions      |
+| 📅 **Appointment Booking** | Book appointments at clinics with live queue tracking                 |
+| 🎫 **Token System**        | Real-time "Now Serving" updates so you never miss your turn           |
+| 📱 **Mobile Friendly**     | Fully responsive design works on all devices                          |
 
 ### 🏪 For Pharmacies
-| Feature | Description |
-|---------|-------------|
+
+| Feature                     | Description                                                               |
+| --------------------------- | ------------------------------------------------------------------------- |
 | 📸 **AI Inventory Scanner** | Snap a photo of medicine shelves — AI auto-detects medicines using Gemini |
-| 📦 **Stock Management** | Add, edit, and manage inventory with expiry tracking |
-| 📍 **Location Setup** | Set your pharmacy location for patients to find you |
-| 📊 **Dashboard** | Overview of your inventory and business metrics |
+| 📦 **Stock Management**     | Add, edit, and manage inventory with expiry tracking                      |
+| 📍 **Location Setup**       | Set your pharmacy location for patients to find you                       |
+| 📊 **Dashboard**            | Overview of your inventory and business metrics                           |
 
 ### 🩺 For Clinics/Doctors
-| Feature | Description |
-|---------|-------------|
-| 📋 **Appointment Queue** | Manage patient appointments with one-click actions |
-| 🔢 **Token Management** | Update "Now Serving" token for live patient updates |
-| ⏰ **Schedule Settings** | Configure clinic timings and appointment slots |
-| ✅ **Patient Tracking** | Mark patients as arrived, in-progress, or completed |
+
+| Feature                  | Description                                         |
+| ------------------------ | --------------------------------------------------- |
+| 📋 **Appointment Queue** | Manage patient appointments with one-click actions  |
+| 🔢 **Token Management**  | Update "Now Serving" token for live patient updates |
+| ⏰ **Schedule Settings** | Configure clinic timings and appointment slots      |
+| ✅ **Patient Tracking**  | Mark patients as arrived, in-progress, or completed |
 
 <br/>
 
@@ -55,12 +58,12 @@
 
 <div align="center">
 
-| Frontend | Backend | AI/ML | Maps |
-|----------|---------|-------|------|
-| React 19 | Firebase Firestore | Google Gemini 1.5 Flash | Leaflet |
-| Vite 7 | Firebase Auth | Image Recognition | OpenStreetMap |
-| Tailwind CSS 4 | Cloud Functions | Natural Language | Routing Machine |
-| Framer Motion | Real-time Sync | Vision API | Geolocation |
+| Frontend       | Backend            | AI/ML                   | Maps            |
+| -------------- | ------------------ | ----------------------- | --------------- |
+| React 19       | Firebase Firestore | Google Gemini 1.5 Flash | Leaflet         |
+| Vite 7         | Firebase Auth      | Image Recognition       | OpenStreetMap   |
+| Tailwind CSS 4 | Cloud Functions    | Natural Language        | Routing Machine |
+| Framer Motion  | Real-time Sync     | Vision API              | Geolocation     |
 
 </div>
 
@@ -70,7 +73,7 @@
 
 ### Prerequisites
 
-- **Node.js** 18+ 
+- **Node.js** 18+
 - **npm** or **yarn**
 - **Firebase Account** ([Create one here](https://firebase.google.com/))
 - **Google AI API Key** ([Get it here](https://makersuite.google.com/app/apikey))
@@ -195,9 +198,9 @@ The inventory scanner uses **Google Gemini 1.5 Flash** to:
 |:---:|:---:|:---:|
 | 🏠 Animated hero | 📊 Quick actions | 🔍 Real-time stock |
 
-| Clinic Queue | Pharmacy Scanner | Appointment Booking |
-|:---:|:---:|:---:|
-| 📋 Token system | 📸 AI detection | 📅 Slot selection |
+|  Clinic Queue   | Pharmacy Scanner | Appointment Booking |
+| :-------------: | :--------------: | :-----------------: |
+| 📋 Token system | 📸 AI detection  |  📅 Slot selection  |
 
 </div>
 
