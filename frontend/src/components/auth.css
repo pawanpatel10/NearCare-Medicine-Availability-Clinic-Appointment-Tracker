@@ -614,3 +614,160 @@
     margin-bottom: 0;
   }
 }
+
+/* ===============================
+   GOOGLE-ONLY LOGIN STYLES
+================================ */
+
+.google-only-card {
+  text-align: center;
+  padding: 48px 40px;
+}
+
+.brand-section {
+  margin-bottom: 32px;
+}
+
+.brand-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #1a6ef5, #10b981);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  box-shadow: 0 10px 30px rgba(26, 110, 245, 0.3);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.brand-name {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1a6ef5, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.brand-tagline {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+.welcome-section {
+  margin-bottom: 24px;
+}
+
+.welcome-section h2 {
+  font-size: 1.5rem;
+  color: #0f172a;
+  margin-bottom: 4px;
+  -webkit-text-fill-color: #0f172a;
+}
+
+.google-signin-btn {
+  width: 100%;
+  padding: 16px 24px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.google-signin-btn:hover {
+  border-color: #1a6ef5;
+  background: #f8fafc;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.google-signin-btn:active {
+  transform: translateY(-1px);
+}
+
+.google-signin-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.google-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.features-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  background: #f1f5f9;
+  transform: translateX(4px);
+}
+
+.feature-icon {
+  font-size: 1.2rem;
+}
+
+.auth-footer {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .google-only-card {
+    padding: 32px 24px;
+  }
+  
+  .brand-icon {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+  }
+  
+  .brand-name {
+    font-size: 1.75rem;
+  }
+  
+  .google-signin-btn {
+    padding: 14px 20px;
+    font-size: 1rem;
+  }
+}

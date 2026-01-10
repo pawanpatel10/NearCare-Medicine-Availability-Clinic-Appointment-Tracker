@@ -19,6 +19,7 @@ export default function ClinicBooking() {
 
   const [clinic, setClinic] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [booking, setBooking] = useState(false); // Prevent duplicate bookings
 
   // 🔥 live waiting count
   const [waitingCount, setWaitingCount] = useState(0);
@@ -50,40 +51,48 @@ export default function ClinicBooking() {
   }, [clinicId]);
 
   const bookAppointment = async () => {
-    if (!auth.currentUser || !clinic) return;
+    if (!auth.currentUser || !clinic || booking) return;
 
+    setBooking(true);
     const userId = auth.currentUser.uid;
 
-    // ✅ block multiple active bookings
-    const existingQuery = query(
-      collection(db, "appointments"),
-      where("clinicId", "==", clinicId),
-      where("userId", "==", userId),
-      where("status", "in", ["waiting", "serving"])
-    );
+    try {
+      // ✅ block multiple active bookings
+      const existingQuery = query(
+        collection(db, "appointments"),
+        where("clinicId", "==", clinicId),
+        where("userId", "==", userId),
+        where("status", "in", ["waiting", "serving"])
+      );
 
-    const existingSnap = await getDocs(existingQuery);
-    if (!existingSnap.empty) {
-      alert("You already have an active appointment at this clinic.");
-      return;
+      const existingSnap = await getDocs(existingQuery);
+      if (!existingSnap.empty) {
+        alert("You already have an active appointment at this clinic.");
+        setBooking(false);
+        return;
+      }
+
+      // 🔢 token = currentToken + waiting + 1
+      const currentToken = clinic.currentToken || 0;
+      const nextToken = currentToken + waitingCount + 1;
+
+      await addDoc(collection(db, "appointments"), {
+        clinicId,
+        clinicName: clinic.name,
+        userId,
+        patientName: auth.currentUser.displayName || "Patient",
+        token: nextToken,
+        status: "waiting",
+        createdAt: serverTimestamp(),
+      });
+
+      alert(`Appointment booked! Your token number is ${nextToken}`);
+      navigate("/my-appointments");
+    } catch (error) {
+      console.error("Booking error:", error);
+      alert("Failed to book appointment. Please try again.");
+      setBooking(false);
     }
-
-    // 🔢 token = currentToken + waiting + 1
-    const currentToken = clinic.currentToken || 0;
-    const nextToken = currentToken + waitingCount + 1;
-
-    await addDoc(collection(db, "appointments"), {
-      clinicId,
-      clinicName: clinic.name,
-      userId,
-      patientName: auth.currentUser.displayName || "Patient",
-      token: nextToken,
-      status: "waiting",
-      createdAt: serverTimestamp(),
-    });
-
-    alert(`Appointment booked! Your token number is ${nextToken}`);
-    navigate("/my-appointments");
   };
 
   if (loading) {
@@ -208,16 +217,25 @@ export default function ClinicBooking() {
             )}
 
             <button
-              disabled={outOfTimeRange}
+              disabled={outOfTimeRange || booking}
               onClick={bookAppointment}
               className={`w-full py-4 mt-6 rounded-2xl font-bold text-white text-lg
-                transition-all duration-300 ${
-                  outOfTimeRange
+                transition-all duration-300 flex items-center justify-center gap-2 ${
+                  outOfTimeRange || booking
                     ? "bg-slate-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-[1.02] hover:shadow-xl shadow-lg"
                 }`}
             >
-              {outOfTimeRange ? "Fully Booked" : "✓ Confirm Appointment"}
+              {booking ? (
+                <>
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Booking...
+                </>
+              ) : outOfTimeRange ? (
+                "Fully Booked"
+              ) : (
+                "✓ Confirm Appointment"
+              )}
             </button>
           </div>
         </div>

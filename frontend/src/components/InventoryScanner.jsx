@@ -8,6 +8,7 @@ export default function InventoryScanner() {
   const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false); // Prevent duplicate submissions
   const [scannedItems, setScannedItems] = useState([]); // Stores the AI results
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -73,7 +74,9 @@ export default function InventoryScanner() {
   //     }, []);
 
   const saveToInventory = async () => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || saving) return; // Prevent if already saving
+
+    setSaving(true); // Start saving state
 
     try {
       // Loop through all scanned items and save to Firestore
@@ -94,11 +97,13 @@ export default function InventoryScanner() {
       );
 
       await Promise.all(promises);
+      setScannedItems([]); // Clear items after successful save
       alert("Inventory Updated Successfully!");
       navigate("/pharmacy/inventory");
     } catch (error) {
       console.error("Save Error:", error);
       alert("Error saving data");
+      setSaving(false); // Reset on error only
     }
   };
 
@@ -272,6 +277,9 @@ export default function InventoryScanner() {
                         <option>Syrup</option>
                         <option>Injection</option>
                         <option>Cream</option>
+                        <option>Powder</option>
+                        <option>Drops</option>
+                        <option>Capsule</option>
                       </select>
                     </div>
                   </div>
@@ -325,9 +333,22 @@ export default function InventoryScanner() {
 
           <button
             onClick={saveToInventory}
-            className="w-full mt-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 shadow-lg"
+            disabled={saving}
+            className={`w-full mt-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg flex items-center justify-center gap-3
+              ${
+                saving
+                  ? "opacity-70 cursor-not-allowed"
+                  : "hover:shadow-xl hover:scale-[1.02]"
+              }`}
           >
-            ✓ Confirm & Add to Inventory
+            {saving ? (
+              <>
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                Saving to Inventory...
+              </>
+            ) : (
+              "✓ Confirm & Add to Inventory"
+            )}
           </button>
         </div>
       )}
